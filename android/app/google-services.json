@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "63179288174",
+    "project_id": "oneroom3group",
+    "storage_bucket": "oneroom3group.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:63179288174:android:e7e524a1d295b002bdc07f",
+        "android_client_info": {
+          "package_name": "com.group3.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDjDbkFUe3oDoxr24dO31JahSA9Kt3cd-o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:63179288174:android:de5d1a482c88fa39bdc07f",
+        "android_client_info": {
+          "package_name": "com.oneroom3rd.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDjDbkFUe3oDoxr24dO31JahSA9Kt3cd-o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

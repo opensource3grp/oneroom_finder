@@ -1,2 +1,4 @@
-2024/11/12-15:00:56.050 2904 Creating DB C:\Users\bakeo\AppData\Local\Temp\flutter_tools.bd25da8f\flutter_tools_chrome_device.76d1caaa\Default\shared_proto_db since it was missing.
-2024/11/12-15:00:56.061 2904 Reusing MANIFEST C:\Users\bakeo\AppData\Local\Temp\flutter_tools.bd25da8f\flutter_tools_chrome_device.76d1caaa\Default\shared_proto_db/MANIFEST-000001
+2024/11/12-20:52:29.421 3950 Reusing MANIFEST C:\Users\bakeo\AppData\Local\Temp\flutter_tools.90053a01\flutter_tools_chrome_device.6d6006b3\Default\shared_proto_db/MANIFEST-000001
+2024/11/12-20:52:29.422 3950 Recovering log #4
+2024/11/12-20:52:29.423 3950 Reusing old log C:\Users\bakeo\AppData\Local\Temp\flutter_tools.90053a01\flutter_tools_chrome_device.6d6006b3\Default\shared_proto_db/000004.log 
+2024/11/12-20:52:29.424 3950 Delete type=0 #3
