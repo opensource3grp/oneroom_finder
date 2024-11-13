@@ -74,6 +74,24 @@
       "languageVersion": "3.0"
     },
     {
+      "name": "firebase_auth",
+      "rootUri": "file:///C:/Users/bakeo/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_auth-5.3.2",
+      "packageUri": "lib/",
+      "languageVersion": "3.2"
+    },
+    {
+      "name": "firebase_auth_platform_interface",
+      "rootUri": "file:///C:/Users/bakeo/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_auth_platform_interface-7.4.8",
+      "packageUri": "lib/",
+      "languageVersion": "3.2"
+    },
+    {
+      "name": "firebase_auth_web",
+      "rootUri": "file:///C:/Users/bakeo/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_auth_web-5.13.3",
+      "packageUri": "lib/",
+      "languageVersion": "3.4"
+    },
+    {
       "name": "firebase_core",
       "rootUri": "file:///C:/Users/bakeo/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_core-3.7.0",
       "packageUri": "lib/",
@@ -114,6 +132,12 @@
       "rootUri": "file:///C:/flutter/packages/flutter_web_plugins",
       "packageUri": "lib/",
       "languageVersion": "3.2"
+    },
+    {
+      "name": "http_parser",
+      "rootUri": "file:///C:/Users/bakeo/AppData/Local/Pub/Cache/hosted/pub.dev/http_parser-4.0.2",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
     },
     {
       "name": "leak_tracker",
@@ -278,6 +302,12 @@
       "languageVersion": "3.2"
     },
     {
+      "name": "typed_data",
+      "rootUri": "file:///C:/Users/bakeo/AppData/Local/Pub/Cache/hosted/pub.dev/typed_data-1.4.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.5"
+    },
+    {
       "name": "vector_math",
       "rootUri": "file:///C:/Users/bakeo/AppData/Local/Pub/Cache/hosted/pub.dev/vector_math-2.1.4",
       "packageUri": "lib/",
@@ -308,7 +338,7 @@
       "languageVersion": "3.5"
     }
   ],
-  "generated": "2024-11-12T11:29:52.730490Z",
+  "generated": "2024-11-13T02:17:29.039747Z",
   "generator": "pub",
   "generatorVersion": "3.5.2",
   "flutterRoot": "file:///C:/flutter",
