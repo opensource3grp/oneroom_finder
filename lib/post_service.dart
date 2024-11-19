@@ -4,7 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 class PostService {
   //게시글 작성 기능
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
-  Future<void> createPost(String title, String content) async {
+  Future<void> createPost(String title, String content,
+      {required String tag}) async {
     //JSON형태로도 전달 가능하다.
     await firestore.collection('posts').add({
       'title': title,
@@ -47,4 +48,10 @@ class PostService {
   Future<void> deletePost(String postId) async {
     await firestore.collection('posts').doc(postId).delete();
   }
+  //북마크
+  /*
+  Future<void> likePost(String postId) async {
+    final prefs = await DocumentReference.getInstance()
+  }
+  */
 }

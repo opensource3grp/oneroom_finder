@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 class RoomDetailsScreen extends StatelessWidget {
   final String location;
 
-  const RoomDetailsScreen({super.key, required this.location});
+  const RoomDetailsScreen(
+      {super.key, required this.location, required String postId});
 
   @override
   Widget build(BuildContext context) {
