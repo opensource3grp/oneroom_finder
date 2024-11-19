@@ -13,7 +13,7 @@ class PostCreateScreen extends StatefulWidget {
 class _PostCreateScreenState extends State<PostCreateScreen> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
-  String selectedTag = '삽니다'; // 기본 태그 설정
+  String selectedTag = '삽니다';
   final List<String> tags = ['삽니다', '팝니다'];
 
   @override
@@ -87,7 +87,7 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
                     const SnackBar(content: Text('게시글이 작성되었습니다.')),
                   );
 
-                  Navigator.pop(context); // 작성 후 이전 화면으로 이동
+                  Navigator.pop(context);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange,

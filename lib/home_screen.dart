@@ -69,7 +69,6 @@ class HomeScreen extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (context) => RoomDetailsScreen(
                           postId: post.id,
-                          location: '',
                         ),
                       ),
                     );
