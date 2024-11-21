@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
 class PostService {
   //게시글 작성 기능
@@ -8,6 +9,7 @@ class PostService {
       {required String tag}) async {
     //JSON형태로도 전달 가능하다.
     await firestore.collection('posts').add({
+      'tag': tag,
       'title': title,
       'content': content,
       'likes': 0,
