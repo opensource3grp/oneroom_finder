@@ -38,6 +38,7 @@ class RoomDetailsScreen extends StatelessWidget {
 
           // 게시글 데이터 가져오기
           final post = snapshot.data!;
+          final String tag = post['tag'] ?? '태그 없음';
           final String title = post['title'] ?? '제목 없음';
           final String content = post['content'] ?? '내용 없음';
           final String author = post['author'] ?? '익명';
@@ -49,6 +50,10 @@ class RoomDetailsScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                //태그
+                Text(
+                  tag,
+                ),
                 // 게시글 제목
                 Text(
                   title,
