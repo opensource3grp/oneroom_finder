@@ -1,15 +1,14 @@
 import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 class PostService {
-  //게시글 작성 기능
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final FirebaseStorage storage = FirebaseStorage.instance;
-  // 수정된 createPost
+
+  // 게시글 작성 기능
   Future<void> createPost(
     BuildContext context,
     String roominfo,
@@ -32,13 +31,24 @@ class PostService {
     if (image != null) {
       try {
         final fileName = DateTime.now().millisecondsSinceEpoch.toString();
-        final ref = storage.ref().child('post_images').child(fileName);
+        final ref = storage.ref('post_images/$fileName');
         await ref.putFile(image); // 이미지 업로드
         imageUrl = await ref.getDownloadURL(); // 업로드된 이미지의 URL 가져오기
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('이미지 업로드 실패: $e')),
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('이미지 업로드 실패'),
+            content: Text('오류 메시지: $e'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context), // 팝업 닫기
+                child: const Text('확인'),
+              ),
+            ],
+          ),
         );
+        imageUrl = null; // 이미지 업로드 실패 시 null 처리
       }
     }
 
@@ -61,9 +71,6 @@ class PostService {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('게시글이 작성되었습니다.')),
       );
-
-      // 게시글 작성 후 화면 닫기
-      Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('게시글 작성 중 오류 발생: $e')),
@@ -71,7 +78,7 @@ class PostService {
     }
   }
 
-  //게시글 조회 기능
+  // 게시글 조회 기능
   Stream<QuerySnapshot> getPosts() {
     return firestore
         .collection('posts')
@@ -79,33 +86,35 @@ class PostService {
         .snapshots();
   }
 
-  //수정
+  // 게시글 수정 기능
   Future<void> updatePost(String postId, String title, String content) async {
-    //해당 postid가 일치한것이 있는가?
-    DocumentReference postRef = firestore.collection('posts').doc(postId);
+    try {
+      DocumentReference postRef = firestore.collection('posts').doc(postId);
 
-    // 해당 postId가 있는지 확인
-    DocumentSnapshot postSnapshot = await postRef.get();
-    if (postSnapshot.exists) {
-      // postId가 일치하는 문서가 있으면 업데이트
-      await postRef.update({
-        'title': title,
-        'content': content,
-      });
-    } else {
-      // 일치하는 postId가 없을 경우의 처리
-      print("Error: 해당 postId의 게시글이 없습니다.");
+      // 해당 postId가 있는지 확인
+      DocumentSnapshot postSnapshot = await postRef.get();
+      if (postSnapshot.exists) {
+        // 게시글이 존재하면 업데이트
+        await postRef.update({
+          'title': title,
+          'content': content,
+          'updateAt': FieldValue.serverTimestamp(), // 수정 시간 업데이트
+        });
+      } else {
+        // 일치하는 postId가 없을 경우 오류 처리
+        throw '게시글이 존재하지 않습니다.';
+      }
+    } catch (e) {
+      throw '게시글 수정 중 오류 발생: $e';
     }
   }
 
-  //삭제
+  // 게시글 삭제 기능
   Future<void> deletePost(String postId) async {
-    await firestore.collection('posts').doc(postId).delete();
+    try {
+      await firestore.collection('posts').doc(postId).delete();
+    } catch (e) {
+      throw '게시글 삭제 중 오류 발생: $e';
+    }
   }
-  //북마크
-  /*
-  Future<void> likePost(String postId) async {
-    final prefs = await DocumentReference.getInstance()
-  }
-  */
 }
