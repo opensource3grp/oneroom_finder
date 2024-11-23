@@ -13,8 +13,7 @@ class CommentInputField extends StatefulWidget {
 class _CommentInputFieldState extends State<CommentInputField> {
   final TextEditingController _commentController = TextEditingController();
 
-  // 댓글 추가 기능
-  void _addComment() async {
+  Future<void> _addComment() async {
     final comment = _commentController.text.trim();
 
     if (comment.isEmpty) {
@@ -24,46 +23,193 @@ class _CommentInputFieldState extends State<CommentInputField> {
       return;
     }
 
-    // Firestore에 댓글 추가 (중복 허용)
-    final postRef =
-        FirebaseFirestore.instance.collection('posts').doc(widget.postId);
+    try {
+      final commentRef = FirebaseFirestore.instance
+          .collection('posts')
+          .doc(widget.postId)
+          .collection('comments')
+          .doc();
 
-    // 기존 댓글 리스트를 받아와서 추가
-    postRef.get().then((doc) {
-      if (doc.exists) {
-        final data = doc.data() as Map<String, dynamic>;
-        final List<dynamic> currentComments = List.from(data['comments'] ?? []);
+      await commentRef.set({
+        'content': comment,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
 
-        // 새 댓글 추가
-        currentComments.add(comment);
+      _commentController.clear();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('댓글이 추가되었습니다.')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('댓글 추가 중 오류 발생: $e')),
+      );
+    }
+  }
 
-        // 업데이트
-        postRef.update({'comments': currentComments});
-      }
-    });
+  Future<void> _deleteComment(String commentId) async {
+    try {
+      final commentRef = FirebaseFirestore.instance
+          .collection('posts')
+          .doc(widget.postId)
+          .collection('comments')
+          .doc(commentId);
 
-    _commentController.clear();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('댓글이 추가되었습니다.')),
+      await commentRef.delete();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('댓글이 삭제되었습니다.')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('댓글 삭제 중 오류 발생: $e')),
+      );
+    }
+  }
+
+  Future<void> _editComment(String commentId, String newContent) async {
+    try {
+      final commentRef = FirebaseFirestore.instance
+          .collection('posts')
+          .doc(widget.postId)
+          .collection('comments')
+          .doc(commentId);
+
+      await commentRef.update({'content': newContent});
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('댓글이 수정되었습니다.')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('댓글 수정 중 오류 발생: $e')),
+      );
+    }
+  }
+
+  Future<void> _showEditDialog(String commentId, String currentContent) async {
+    final editController = TextEditingController(text: currentContent);
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('댓글 수정'),
+          content: TextField(
+            controller: editController,
+            decoration: const InputDecoration(
+              hintText: '수정할 내용을 입력하세요...',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('취소'),
+            ),
+            TextButton(
+              onPressed: () {
+                final newContent = editController.text.trim();
+                if (newContent.isNotEmpty) {
+                  _editComment(commentId, newContent);
+                  Navigator.of(context).pop();
+                }
+              },
+              child: const Text('수정'),
+            ),
+          ],
+        );
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: TextField(
-            controller: _commentController,
-            decoration: const InputDecoration(
-              hintText: '댓글을 입력하세요...',
-              border: OutlineInputBorder(),
-            ),
+        // 댓글 입력 필드
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _commentController,
+                  decoration: const InputDecoration(
+                    hintText: '댓글을 입력하세요...',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: _addComment,
+                icon: const Icon(Icons.send, color: Colors.orange),
+              ),
+            ],
           ),
         ),
-        IconButton(
-          onPressed: _addComment,
-          icon: const Icon(Icons.send, color: Colors.orange),
+
+        // 댓글 리스트
+        ConstrainedBox(
+          constraints: const BoxConstraints(
+            maxHeight: 300, // 댓글 리스트의 최대 높이 설정
+          ),
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('posts')
+                .doc(widget.postId)
+                .collection('comments')
+                .orderBy('createdAt', descending: true)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (snapshot.hasError) {
+                return Center(
+                  child: Text('오류가 발생했습니다: ${snapshot.error}'),
+                );
+              }
+
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return const Center(
+                  child: Text('아직 댓글이 없습니다. 첫 번째 댓글을 추가해보세요!'),
+                );
+              }
+
+              final comments = snapshot.data!.docs;
+
+              return ListView.builder(
+                shrinkWrap: true,
+                itemCount: comments.length,
+                itemBuilder: (context, index) {
+                  final comment = comments[index];
+                  final content = comment['content'] as String? ?? '내용 없음';
+                  final commentId = comment.id;
+
+                  return ListTile(
+                    title: Text(content),
+                    trailing: PopupMenuButton<String>(
+                      onSelected: (value) {
+                        if (value == 'edit') {
+                          _showEditDialog(commentId, content);
+                        } else if (value == 'delete') {
+                          _deleteComment(commentId);
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Text('수정'),
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Text('삭제'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
+          ),
         ),
       ],
     );
