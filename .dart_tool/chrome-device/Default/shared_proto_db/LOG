@@ -1,7 +1,20 @@
-2024/11/21-10:33:17.419 4164 Reusing MANIFEST C:\Users\bakeo\AppData\Local\Temp\flutter_tools.20f359a5\flutter_tools_chrome_device.fe71ab8c\Default\shared_proto_db/MANIFEST-000001
-2024/11/21-10:33:17.420 4164 Recovering log #13
-2024/11/21-10:33:17.420 4164 Reusing old log C:\Users\bakeo\AppData\Local\Temp\flutter_tools.20f359a5\flutter_tools_chrome_device.fe71ab8c\Default\shared_proto_db/000013.log 
-2024/11/21-10:33:17.421 4164 Delete type=0 #3
-2024/11/21-10:33:17.421 4164 Delete type=0 #4
-2024/11/21-10:33:17.421 4164 Delete type=0 #7
-2024/11/21-10:33:17.421 4164 Delete type=0 #10
+2024/11/24-04:15:42.984 3490 Reusing MANIFEST C:\Users\bakeo\AppData\Local\Temp\flutter_tools.4e8e94ab\flutter_tools_chrome_device.e35b1ca\Default\shared_proto_db/MANIFEST-000001
+2024/11/24-04:15:42.986 3490 Recovering log #16
+2024/11/24-04:15:42.987 3490 Reusing old log C:\Users\bakeo\AppData\Local\Temp\flutter_tools.4e8e94ab\flutter_tools_chrome_device.e35b1ca\Default\shared_proto_db/000016.log 
+2024/11/24-04:15:42.988 3490 Delete type=0 #3
+2024/11/24-04:15:42.988 3490 Delete type=0 #4
+2024/11/24-04:15:42.988 3490 Delete type=0 #7
+2024/11/24-04:15:42.988 3490 Delete type=0 #10
+2024/11/24-04:15:42.988 3490 Delete type=0 #13
+2024/11/24-04:16:01.637 17f0 Level-0 table #20: started
+2024/11/24-04:16:01.641 17f0 Level-0 table #20: 140310 bytes OK
+2024/11/24-04:16:01.645 17f0 Delete type=0 #16
+2024/11/24-04:16:01.645 17f0 Compacting 4@0 + 1@1 files
+2024/11/24-04:16:01.650 17f0 Generated table #21@0: 648 keys, 98280 bytes
+2024/11/24-04:16:01.650 17f0 Compacted 4@0 + 1@1 files => 98280 bytes
+2024/11/24-04:16:01.651 17f0 compacted to: files[ 0 1 1 0 0 0 0 ]
+2024/11/24-04:16:01.652 17f0 Delete type=2 #8
+2024/11/24-04:16:01.652 17f0 Delete type=2 #11
+2024/11/24-04:16:01.652 17f0 Delete type=2 #14
+2024/11/24-04:16:01.652 17f0 Delete type=2 #17
+2024/11/24-04:16:01.652 17f0 Delete type=2 #20
