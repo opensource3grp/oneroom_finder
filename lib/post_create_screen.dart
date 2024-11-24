@@ -133,9 +133,8 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
             const SizedBox(height: 16),
             Center(
               child: ElevatedButton(
-                onPressed: () {
-                  // 게시글 작성
-                  widget.postService.createPost(
+                onPressed: () async {
+                  await widget.postService.createPost(
                     context,
                     _titleController.text.trim(),
                     _contentController.text.trim(),
@@ -144,6 +143,7 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
                     type: type, // 거래 유형 전달
                     roomType: title, // 타입 선택 전달
                   );
+                  Navigator.pop(context); // 홈 화면으로 이동
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange,
