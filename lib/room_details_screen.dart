@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import 'comment.dart';
 import 'post_service.dart';
 
@@ -8,82 +10,11 @@ class RoomDetailsScreen extends StatelessWidget {
 
   const RoomDetailsScreen({super.key, required this.postId});
 
-  // Firestore에서 데이터를 실시간으로 가져오기 위해 StreamBuilder 사용
   Stream<DocumentSnapshot> fetchPostDetails() {
     return FirebaseFirestore.instance
         .collection('posts')
         .doc(postId)
         .snapshots();
-  }
-
-  Future<void> _deletePost(BuildContext context) async {
-    try {
-      await PostService().deletePost(postId);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('게시글이 삭제되었습니다.')),
-      );
-      Navigator.of(context).pop(); // 삭제 후 이전 화면으로 이동
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('게시글 삭제 중 오류 발생: $e')),
-      );
-    }
-  }
-
-  Future<void> _showEditDialog(
-      BuildContext context, String currentTitle, String currentContent) async {
-    final titleController = TextEditingController(text: currentTitle);
-    final contentController = TextEditingController(text: currentContent);
-
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('게시글 수정'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: titleController,
-                  decoration: const InputDecoration(labelText: '제목'),
-                ),
-                const SizedBox(height: 8.0),
-                TextField(
-                  controller: contentController,
-                  decoration: const InputDecoration(labelText: '내용'),
-                  maxLines: 4,
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('취소'),
-            ),
-            TextButton(
-              onPressed: () async {
-                final newTitle = titleController.text.trim();
-                final newContent = contentController.text.trim();
-                if (newTitle.isNotEmpty && newContent.isNotEmpty) {
-                  await PostService().updatePost(postId, newTitle, newContent);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('게시글이 수정되었습니다.')),
-                  );
-                  Navigator.of(context).pop(); // 수정 후 다이얼로그 닫기
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('제목과 내용을 입력해주세요.')),
-                  );
-                }
-              },
-              child: const Text('수정'),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
@@ -93,11 +24,10 @@ class RoomDetailsScreen extends StatelessWidget {
         title: const Text('원룸 상세 정보'),
         backgroundColor: Colors.orange,
         actions: [
-          // 우측 상단에 세로 점 3개 (게시글 수정 및 삭제)
           PopupMenuButton<String>(
             onSelected: (value) {
               if (value == 'edit') {
-                // 수정 버튼 클릭
+                // 수정 버튼 클릭 시 다이얼로그 열기
                 showDialog(
                   context: context,
                   builder: (context) {
@@ -116,68 +46,152 @@ class RoomDetailsScreen extends StatelessWidget {
 
                         final post =
                             snapshot.data!.data() as Map<String, dynamic>;
-                        final currentTitle = post['title'] ?? '';
-                        final currentContent = post['content'] ?? '';
+                        final TextEditingController titleController =
+                            TextEditingController(text: post['title'] ?? '');
+                        final TextEditingController contentController =
+                            TextEditingController(text: post['content'] ?? '');
 
-                        return AlertDialog(
-                          title: const Text('게시글 수정'),
-                          content: SingleChildScrollView(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                TextField(
-                                  controller:
-                                      TextEditingController(text: currentTitle),
-                                  decoration:
-                                      const InputDecoration(labelText: '제목'),
+                        String? type = post['type'] ?? '월세';
+                        String? roomType = post['roomType'] ?? '원룸';
+                        String? currentImageUrl = post['imageUrl'];
+                        File? newImage;
+
+                        return StatefulBuilder(
+                          builder: (context, setState) {
+                            return AlertDialog(
+                              title: const Text('게시글 수정'),
+                              content: SingleChildScrollView(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    TextField(
+                                      controller: titleController,
+                                      decoration: const InputDecoration(
+                                          labelText: '제목'),
+                                    ),
+                                    const SizedBox(height: 8.0),
+                                    TextField(
+                                      controller: contentController,
+                                      decoration: const InputDecoration(
+                                          labelText: '내용'),
+                                      maxLines: 4,
+                                    ),
+                                    const SizedBox(height: 8.0),
+                                    DropdownButtonFormField<String>(
+                                      decoration: const InputDecoration(
+                                        labelText: '거래 유형',
+                                        border: OutlineInputBorder(),
+                                      ),
+                                      value: type,
+                                      items: ['월세', '전세']
+                                          .map((item) => DropdownMenuItem(
+                                                value: item,
+                                                child: Text(item),
+                                              ))
+                                          .toList(),
+                                      onChanged: (value) {
+                                        setState(() {
+                                          type = value;
+                                        });
+                                      },
+                                    ),
+                                    const SizedBox(height: 8.0),
+                                    DropdownButtonFormField<String>(
+                                      decoration: const InputDecoration(
+                                        labelText: '타입 선택',
+                                        border: OutlineInputBorder(),
+                                      ),
+                                      value: roomType,
+                                      items: ['원룸', '투룸', '쓰리룸']
+                                          .map((item) => DropdownMenuItem(
+                                                value: item,
+                                                child: Text(item),
+                                              ))
+                                          .toList(),
+                                      onChanged: (value) {
+                                        setState(() {
+                                          roomType = value;
+                                        });
+                                      },
+                                    ),
+                                    const SizedBox(height: 8.0),
+                                    TextButton(
+                                      onPressed: () async {
+                                        final pickedFile = await ImagePicker()
+                                            .pickImage(
+                                                source: ImageSource.gallery);
+                                        if (pickedFile != null) {
+                                          setState(() {
+                                            newImage = File(pickedFile.path);
+                                          });
+                                        }
+                                      },
+                                      child: const Text('사진 변경'),
+                                    ),
+                                    if (newImage != null)
+                                      Image.file(newImage!, height: 100)
+                                    else if (currentImageUrl != null)
+                                      Image.network(currentImageUrl,
+                                          height: 100),
+                                  ],
                                 ),
-                                const SizedBox(height: 8.0),
-                                TextField(
-                                  controller: TextEditingController(
-                                      text: currentContent),
-                                  decoration:
-                                      const InputDecoration(labelText: '내용'),
-                                  maxLines: 4,
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  child: const Text('취소'),
+                                ),
+                                TextButton(
+                                  onPressed: () async {
+                                    final newTitle = titleController.text;
+                                    final newContent = contentController.text;
+
+                                    if (newTitle.isNotEmpty &&
+                                        newContent.isNotEmpty) {
+                                      await PostService().updatePost(
+                                        postId,
+                                        newTitle,
+                                        newContent,
+                                        type,
+                                        roomType,
+                                        newImage,
+                                      );
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                            content: Text('게시글이 수정되었습니다.')),
+                                      );
+                                      Navigator.of(context).pop(); // 다이얼로그 닫기
+                                    } else {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                            content: Text('제목과 내용을 입력해주세요.')),
+                                      );
+                                    }
+                                  },
+                                  child: const Text('수정'),
                                 ),
                               ],
-                            ),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(),
-                              child: const Text('취소'),
-                            ),
-                            TextButton(
-                              onPressed: () async {
-                                final newTitle = currentTitle;
-                                final newContent = currentContent;
-                                if (newTitle.isNotEmpty &&
-                                    newContent.isNotEmpty) {
-                                  await PostService()
-                                      .updatePost(postId, newTitle, newContent);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content: Text('게시글이 수정되었습니다.')),
-                                  );
-                                  Navigator.of(context).pop(); // 수정 후 다이얼로그 닫기
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content: Text('제목과 내용을 입력해주세요.')),
-                                  );
-                                }
-                              },
-                              child: const Text('수정'),
-                            ),
-                          ],
+                            );
+                          },
                         );
                       },
                     );
                   },
                 );
               } else if (value == 'delete') {
-                // 삭제 버튼 클릭
-                _deletePost(context);
+                // 삭제 버튼 클릭 시 처리
+                PostService().deletePost(postId).then((_) {
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('게시글이 삭제되었습니다.')),
+                  );
+                }).catchError((e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('게시글 삭제 중 오류 발생: $e')),
+                  );
+                });
               }
             },
             itemBuilder: (BuildContext context) {
@@ -240,19 +254,6 @@ class RoomDetailsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8.0),
                   Text(
-                    '위치 : ${post['location']}',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 8.0),
-                  Text(
-                    '작성자: $author',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 16.0),
-                  Text(
                     content,
                     style: const TextStyle(fontSize: 18),
                   ),
@@ -275,7 +276,7 @@ class RoomDetailsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8.0),
 
-                  // 댓글 입력 및 리스트 추가
+                  // 댓글 입력 필드
                   CommentInputField(postId: postId),
                 ],
               ),

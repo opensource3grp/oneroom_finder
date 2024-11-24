@@ -87,7 +87,8 @@ class PostService {
   }
 
   // 게시글 수정 기능
-  Future<void> updatePost(String postId, String title, String content) async {
+  Future<void> updatePost(String postId, String title, String content,
+      String? type, String? roomType, File? image) async {
     try {
       DocumentReference postRef = firestore.collection('posts').doc(postId);
 
