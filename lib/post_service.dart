@@ -1,12 +1,19 @@
+//firebase firestore를 이용해서 CRUD 하는 기능
+
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 
 class PostService {
   //게시글 작성 기능
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   Future<void> createPost(String title, String content,
-      {required String tag}) async {
+      {required String tag,
+      required String location,
+      required String roomType,
+      required String dealType,
+      File? image,
+      required String price}) async {
     //JSON형태로도 전달 가능하다.
     await firestore.collection('posts').add({
       'tag': tag,
@@ -42,6 +49,7 @@ class PostService {
       });
     } else {
       // 일치하는 postId가 없을 경우의 처리
+      // ignore: avoid_print
       print("Error: 해당 postId의 게시글이 없습니다.");
     }
   }

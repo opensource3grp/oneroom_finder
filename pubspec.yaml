@@ -15,6 +15,7 @@ dependencies:
   cloud_firestore: ^5.4.5
   shared_preferences: ^2.3.3
   firebase_auth: ^5.3.2
+  image_picker: ^1.1.2
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -22,3 +23,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true  # Material Design 아이콘 사용 설정
+  assets:
+    - assets/logo.png
