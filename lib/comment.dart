@@ -47,16 +47,18 @@ class _CommentInputFieldState extends State<CommentInputField> {
       // 댓글 추가 후 review 필드 증가
       await PostService().incrementReviewCount(widget.postId);
 
-      _commentController.clear();
-      // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('댓글이 추가되었습니다.')),
-      );
+      if (mounted) {
+        _commentController.clear();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('댓글이 추가되었습니다.')),
+        );
+      }
     } catch (e) {
-      // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('댓글 추가 중 오류 발생: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('댓글 추가 중 오류 발생: $e')),
+        );
+      }
     }
   }
 
@@ -74,16 +76,21 @@ class _CommentInputFieldState extends State<CommentInputField> {
           .doc(commentId);
 
       await commentRef.delete();
+
       // 댓글 삭제 후 review 필드 감소
       await PostService().incrementReviewCount(widget.postId);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('댓글이 삭제되었습니다.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('댓글이 삭제되었습니다.')),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('댓글 삭제 중 오류 발생: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('댓글 삭제 중 오류 발생: $e')),
+        );
+      }
     }
   }
 
@@ -102,13 +109,18 @@ class _CommentInputFieldState extends State<CommentInputField> {
           .doc(commentId);
 
       await commentRef.update({'content': newContent});
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('댓글이 수정되었습니다.')),
-      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('댓글이 수정되었습니다.')),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('댓글 수정 중 오류 발생: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('댓글 수정 중 오류 발생: $e')),
+        );
+      }
     }
   }
 
@@ -137,7 +149,9 @@ class _CommentInputFieldState extends State<CommentInputField> {
                 final newContent = editController.text.trim();
                 if (newContent.isNotEmpty) {
                   _editComment(commentId, newContent, commentUserId);
-                  Navigator.of(context).pop();
+                  if (mounted) {
+                    Navigator.of(context).pop();
+                  }
                 }
               },
               child: const Text('수정'),
@@ -212,31 +226,37 @@ class _CommentInputFieldState extends State<CommentInputField> {
                 itemCount: comments.length,
                 itemBuilder: (context, index) {
                   final comment = comments[index];
-                  final content = comment['content'] as String? ?? '내용 없음';
+                  final content = comment.get('content') ?? '내용 없음';
                   final commentId = comment.id;
-                  final commentUserId = comment['userId'] as String? ?? '';
+                  final commentUserId = comment.get('userId') ?? '';
+
+                  final isOwner =
+                      FirebaseAuth.instance.currentUser?.uid == commentUserId;
 
                   return ListTile(
                     title: Text(content),
-                    trailing: PopupMenuButton<String>(
-                      onSelected: (value) {
-                        if (value == 'edit') {
-                          _showEditDialog(commentId, content, commentUserId);
-                        } else if (value == 'delete') {
-                          _deleteComment(commentId, commentUserId);
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(
-                          value: 'edit',
-                          child: Text('수정'),
-                        ),
-                        const PopupMenuItem(
-                          value: 'delete',
-                          child: Text('삭제'),
-                        ),
-                      ],
-                    ),
+                    trailing: isOwner
+                        ? PopupMenuButton<String>(
+                            onSelected: (value) {
+                              if (value == 'edit') {
+                                _showEditDialog(
+                                    commentId, content, commentUserId);
+                              } else if (value == 'delete') {
+                                _deleteComment(commentId, commentUserId);
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: 'edit',
+                                child: Text('수정'),
+                              ),
+                              const PopupMenuItem(
+                                value: 'delete',
+                                child: Text('삭제'),
+                              ),
+                            ],
+                          )
+                        : null,
                   );
                 },
               );
