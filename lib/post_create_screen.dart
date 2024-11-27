@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'dart:io';
-import 'package:image_picker/image_picker.dart';
-import 'post_service.dart';
+import 'package:image_picker/image_picker.dart'; // 이미지 선택
+import 'dart:io'; // 이미지 파일 관련
+import 'post_service.dart'; // PostService import
 
 class PostCreateScreen extends StatefulWidget {
-  final PostService postService; // PostService 인스턴스
+  final PostService postService;
 
   const PostCreateScreen({super.key, required this.postService});
 
@@ -15,21 +15,26 @@ class PostCreateScreen extends StatefulWidget {
 
 class _PostCreateScreenState extends State<PostCreateScreen> {
   final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _locationController = TextEditingController();
-  final TextEditingController _priceController = TextEditingController();
-  final TextEditingController _detailController = TextEditingController();
-
+  final TextEditingController _contentController = TextEditingController();
   String selectedTag = '삽니다';
   final List<String> tags = ['삽니다', '팝니다'];
+  File? selectedImage; // 선택된 이미지 파일
 
-  String selectedRoomType = '원룸';
-  final List<String> roomTypes = ['원룸', '투룸', '쓰리룸'];
+  String? type = '월세'; // 거래 유형
+  String? title = '원룸'; // 타입 선택 (원룸, 투룸, 쓰리룸)
 
-  String selectedDealType = '월세';
-  final List<String> dealTypes = ['월세', '전세'];
+  // 이미지를 갤러리에서 선택하는 함수
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? pickedFile =
+        await picker.pickImage(source: ImageSource.gallery);
 
-  File? selectedImage;
-  final ImagePicker picker = ImagePicker();
+    if (pickedFile != null) {
+      setState(() {
+        selectedImage = File(pickedFile.path);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +43,7 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
         title: const Text('게시글 작성'),
         backgroundColor: Colors.orange,
       ),
-      body: SingleChildScrollView(
+      body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -62,70 +67,86 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
               },
             ),
             const SizedBox(height: 16),
-            const Text(
-              '타입 선택',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            DropdownButton<String>(
-              value: selectedRoomType,
-              items: roomTypes.map((type) {
-                return DropdownMenuItem(
-                  value: type,
-                  child: Text(type),
-                );
-              }).toList(),
+
+            // 타입 선택 (원룸, 투룸, 쓰리룸)
+            DropdownButtonFormField<String>(
+              decoration: const InputDecoration(
+                labelText: '타입 선택',
+                border: OutlineInputBorder(),
+              ),
+              value: title,
+              items: ['원룸', '투룸', '쓰리룸']
+                  .map((item) => DropdownMenuItem(
+                        value: item,
+                        child: Text(item),
+                      ))
+                  .toList(),
               onChanged: (value) {
                 setState(() {
-                  selectedRoomType = value!;
+                  title = value;
+                });
+              },
+            ),
+            const SizedBox(height: 10),
+
+            // 거래 유형 (월세, 전세)
+            DropdownButtonFormField<String>(
+              decoration: const InputDecoration(
+                labelText: '거래 유형',
+                border: OutlineInputBorder(),
+              ),
+              value: type,
+              items: ['월세', '전세']
+                  .map((item) => DropdownMenuItem(
+                        value: item,
+                        child: Text(item),
+                      ))
+                  .toList(),
+              onChanged: (value) {
+                setState(() {
+                  type = value;
                 });
               },
             ),
             const SizedBox(height: 16),
-            const Text(
-              '거래 유형 선택',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+
+            TextField(
+              controller: _titleController,
+              decoration: const InputDecoration(
+                labelText: '제목',
+                border: OutlineInputBorder(),
+              ),
             ),
-            DropdownButton<String>(
-              value: selectedDealType,
-              items: dealTypes.map((type) {
-                return DropdownMenuItem(
-                  value: type,
-                  child: Text(type),
-                );
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  selectedDealType = value!;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-            _buildTextField('제목', _titleController),
-            const SizedBox(height: 16),
-            _buildTextField('위치', _locationController),
-            const SizedBox(height: 16),
-            _buildTextField('가격', _priceController, TextInputType.number),
             const SizedBox(height: 16),
             TextField(
-              controller: _detailController,
+              controller: _contentController,
               decoration: const InputDecoration(
-                labelText: '상세 내용',
+                labelText: '내용',
                 border: OutlineInputBorder(),
               ),
               maxLines: 5,
             ),
             const SizedBox(height: 16),
             ElevatedButton(
+              onPressed: _pickImage, // 이미지 선택 함수 호출
+              child: const Text('사진 추가'),
+            ),
+            if (selectedImage != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Image.file(selectedImage!),
+              ),
+            const SizedBox(height: 16),
+            ElevatedButton(
               onPressed: () async {
                 final pickedFile =
-                    await picker.pickImage(source: ImageSource.gallery);
+                    await ImagePicker().pickImage(source: ImageSource.gallery);
                 if (pickedFile != null) {
                   setState(() {
                     selectedImage = File(pickedFile.path);
                   });
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
               child: const Text('사진 추가'),
             ),
             if (selectedImage != null)
@@ -137,39 +158,17 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
             Center(
               child: ElevatedButton(
                 onPressed: () async {
-                  final title = _titleController.text.trim();
-                  final location = _locationController.text.trim();
-                  final price = _priceController.text.trim();
-                  final detail = _detailController.text.trim();
-
-                  if (title.isEmpty ||
-                      location.isEmpty ||
-                      price.isEmpty ||
-                      detail.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('모든 필드를 입력해주세요.')),
-                    );
-                    return;
-                  }
-
                   await widget.postService.createPost(
-                    title,
-                    detail,
+                    context,
+                    _titleController.text.trim(),
+                    _contentController.text.trim(),
                     tag: selectedTag,
-                    location: location,
-                    price: price,
-                    roomType: selectedRoomType,
-                    dealType: selectedDealType,
-                    image: selectedImage,
+                    image: selectedImage, // 이미지 전달
+                    type: type, // 거래 유형 전달
+                    roomType: title, // 타입 선택 전달
                   );
-
                   // ignore: use_build_context_synchronously
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('게시글이 작성되었습니다.')),
-                  );
-
-                  // ignore: use_build_context_synchronously
-                  Navigator.pop(context);
+                  Navigator.pop(context); // 홈 화면으로 이동
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange,
@@ -183,24 +182,10 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller,
-      [TextInputType keyboardType = TextInputType.text]) {
-    return TextField(
-      controller: controller,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-      ),
-      keyboardType: keyboardType,
-    );
-  }
-
   @override
   void dispose() {
     _titleController.dispose();
-    _locationController.dispose();
-    _priceController.dispose();
-    _detailController.dispose();
+    _contentController.dispose();
     super.dispose();
   }
 }

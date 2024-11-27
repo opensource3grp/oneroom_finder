@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:oneroom_finder/post_service.dart';
-import 'room_details_screen.dart';
-import 'post_create_screen.dart'; // 게시물 생성 화면을 위한 임포트
-import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:oneroom_finder/post_create_screen.dart';
+import 'post_service.dart';
+import 'post_list_screen.dart';
+import 'post_card.dart';
 
 class HomeScreen extends StatefulWidget {
-  final List<Map<String, dynamic>> posts; // posts를 외부에서 전달받도록 정의
+  final List<Map<String, String>> posts; // posts 추가
 
   const HomeScreen({super.key, required this.posts});
 
@@ -15,22 +16,36 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // posts를 직접 업데이트 할 수 있게 변경
-  void _updatePost(int index, Map<String, dynamic> updatedPost) {
+  final PostService postService = PostService();
+  int _selectedIndex = 0;
+
+  late List<Widget> _widgetOptions; // posts 전달을 위해 late로 초기화
+
+  @override
+  void initState() {
+    super.initState();
+    // posts 전달 대신 Firestore와 연동되도록 수정
+    _widgetOptions = <Widget>[
+      const HomeTab(), // Firestore에서 데이터를 가져오므로 posts 필요 없음
+      const MessageTab(),
+      const MapTab(),
+      const MyPageTab(),
+    ];
+  }
+
+  void _onItemTapped(int index) {
     setState(() {
-      widget.posts[index] = updatedPost;
+      _selectedIndex = index;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // PostService 인스턴스 생성
-    PostService postService = PostService();
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
         title: const Text(
-          '원룸알리미',
+          '원룸 알리미',
           style: TextStyle(color: Colors.orange),
         ),
         centerTitle: true,
@@ -50,25 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: HomeTab(
-        posts: widget.posts,
-        updatePost: _updatePost, // 게시물 업데이트 함수 전달
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // 게시물 생성 화면으로 이동
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => PostCreateScreen(
-                postService: postService, // PostService 전달
-              ),
-            ),
-          );
-        },
-        backgroundColor: Colors.orange,
-        child: const Icon(Icons.add),
-      ),
+      body: _widgetOptions.elementAt(_selectedIndex),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.orange,
@@ -79,145 +76,112 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.map), label: '지도'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: '마이페이지'),
         ],
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PostCreateScreen(postService: postService),
+            ),
+          );
+        },
+        backgroundColor: Colors.orange,
+        child: const Icon(Icons.add),
       ),
     );
   }
 }
 
-class HomeTab extends StatefulWidget {
-  final List<Map<String, dynamic>> posts;
-  final Function(int, Map<String, dynamic>)
-      updatePost; // Define the updatePost type
-
-  const HomeTab({
-    super.key,
-    required this.posts,
-    required this.updatePost, // Receive updatePost in the constructor
-  });
-
-  @override
-  // ignore: library_private_types_in_public_api
-  _HomeTabState createState() => _HomeTabState();
-}
-
-class _HomeTabState extends State<HomeTab> {
-  List<Map<String, dynamic>> posts = [
-    {
-      'title': '원룸 (월세)',
-      'location': '학교앞',
-      'price': '200/33',
-      'author': '공인중개사',
-      'detail': '관리비 5만원',
-      'image': null,
-      'isFavorite': false,
-    },
-    {
-      'title': '투룸 (전세)',
-      'location': '학교앞',
-      'price': '200/45',
-      'author': '학생',
-      'detail': '관리비 5만원',
-      'image': null,
-      'isFavorite': false,
-    },
-  ];
+class HomeTab extends StatelessWidget {
+  const HomeTab({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      itemCount: posts.length,
-      itemBuilder: (context, index) {
-        final post = posts[index];
-        return _buildListingCard(
-          post['title'] ?? '',
-          post['location'] ?? '',
-          post['price'] ?? '',
-          post['author'] ?? '',
-          post['detail'] ?? '',
-          post['image'],
-          post['isFavorite'],
-          () {
-            setState(() {
-              posts[index]['isFavorite'] = !post['isFavorite'];
-            });
-          },
-          () {
-            // 게시물을 클릭하면 상세 정보 화면으로 이동
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => RoomDetailsScreen(
-                  post: post,
-                  postId: '',
-                  updatePost: widget.updatePost,
+    final PostService postService = PostService();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("금오공대"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.sort), // 정렬 버튼
+            onPressed: () {
+              // PostListScreen으로 이동
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PostListScreen(),
                 ),
+              );
+            },
+          ),
+        ],
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: postService.getPosts(), // Firestore에서 게시글 스트림 가져오기
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(
+              child: Text(
+                '게시글이 없습니다.',
+                style: TextStyle(fontSize: 16, color: Colors.black54),
               ),
             );
-          },
-        );
-      },
-    );
-  }
+          }
 
-  Widget _buildListingCard(
-    String title,
-    String location,
-    String price,
-    String author,
-    String detail,
-    File? image,
-    bool isFavorite,
-    VoidCallback onFavoritePressed,
-    VoidCallback onCardPressed,
-  ) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
-      child: InkWell(
-        onTap: onCardPressed,
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (price.isNotEmpty)
-                Text(price,
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
-              Text(
-                '$title/$location/$detail',
-                style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black),
-              ),
-              const SizedBox(height: 4),
-              Text('작성자 : $author',
-                  style: const TextStyle(color: Colors.redAccent)),
-              if (image != null) ...[
-                const SizedBox(height: 8),
-                Image.file(image,
-                    width: double.infinity, height: 150, fit: BoxFit.cover),
-              ],
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    '후기 0개',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      isFavorite ? Icons.favorite : Icons.favorite_border,
-                      color: Colors.redAccent,
-                    ),
-                    onPressed: onFavoritePressed,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
+          final posts = snapshot.data!.docs;
+
+          return ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            itemCount: posts.length,
+            itemBuilder: (context, index) {
+              final post = posts[index];
+              final postData = post.data() as Map<String,
+                  dynamic>; // DocumentSnapshot의 data()를 Map으로 캐스팅
+
+              final title = postData['title'] ?? '제목 없음';
+              final content = postData['content'] ?? '내용 없음';
+              final location = postData['location'] ?? '위치 없음';
+              final price = postData['price'] ?? '가격 정보 없음';
+              final author = postData['author'] ?? '작성자 없음';
+              final image = postData['image'] ?? ''; // Image URL or path
+              final tag = postData['tag'] ?? ''; // 추가: tag 정보
+
+              return StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('posts')
+                    .doc(post.id)
+                    .collection('comments')
+                    .snapshots(), // comments 하위 컬렉션 스트림
+                builder: (context, commentSnapshot) {
+                  int reviewsCount = 0;
+                  if (commentSnapshot.hasData) {
+                    reviewsCount = commentSnapshot.data!.docs.length; // 후기 개수
+                  }
+
+                  return PostCard(
+                    tag: tag, // 추가: tag 전달
+                    post: post,
+                    title: title,
+                    content: content,
+                    location: location,
+                    price: price,
+                    author: author,
+                    image: image,
+                    reviewsCount: reviewsCount,
+                    postId: post.id,
+                  );
+                },
+              );
+            },
+          );
+        },
       ),
     );
   }
