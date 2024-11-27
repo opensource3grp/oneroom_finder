@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:oneroom_finder/post_service.dart';
 
 class CommentInputField extends StatefulWidget {
@@ -10,13 +9,16 @@ class CommentInputField extends StatefulWidget {
   const CommentInputField({super.key, required this.postId});
 
   @override
-  // ignore: library_private_types_in_public_api
   _CommentInputFieldState createState() => _CommentInputFieldState();
 }
 
 class _CommentInputFieldState extends State<CommentInputField> {
   final TextEditingController _commentController = TextEditingController();
 
+  // Firebase Auth를 사용해 현재 사용자 ID 가져오기
+  User? currentUser = FirebaseAuth.instance.currentUser;
+
+  // 댓글 추가
   Future<void> _addComment() async {
     final comment = _commentController.text.trim();
 
@@ -37,27 +39,34 @@ class _CommentInputFieldState extends State<CommentInputField> {
       await commentRef.set({
         'content': comment,
         'createdAt': FieldValue.serverTimestamp(),
-        'userId': currentUser.uid,
+        'userId': currentUser!.uid, // 현재 사용자 ID 추가
       });
 
       // 댓글 추가 후 review 필드 증가
       await PostService().incrementReviewCount(widget.postId);
 
       _commentController.clear();
-      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('댓글이 추가되었습니다.')),
       );
     } catch (e) {
-      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('댓글 추가 중 오류 발생: $e')),
       );
     }
   }
 
+  // 댓글 삭제
   Future<void> _deleteComment(String commentId, String commentUserId) async {
     try {
+      // 현재 사용자와 댓글 작성자가 동일한 경우에만 삭제 가능하도록 처리
+      if (currentUser!.uid != commentUserId) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('자신의 댓글만 삭제할 수 있습니다.')),
+        );
+        return;
+      }
+
       final commentRef = FirebaseFirestore.instance
           .collection('posts')
           .doc(widget.postId)
@@ -65,24 +74,30 @@ class _CommentInputFieldState extends State<CommentInputField> {
           .doc(commentId);
 
       await commentRef.delete();
-      // 댓글 삭제 후 review 필드 감소
       await PostService().incrementReviewCount(widget.postId);
 
-      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('댓글이 삭제되었습니다.')),
       );
     } catch (e) {
-      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('댓글 삭제 중 오류 발생: $e')),
       );
     }
   }
 
+  // 댓글 수정
   Future<void> _editComment(
       String commentId, String newContent, String commentUserId) async {
     try {
+      // 현재 사용자와 댓글 작성자가 동일한 경우에만 수정 가능하도록 처리
+      if (currentUser!.uid != commentUserId) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('자신의 댓글만 수정할 수 있습니다.')),
+        );
+        return;
+      }
+
       final commentRef = FirebaseFirestore.instance
           .collection('posts')
           .doc(widget.postId)
@@ -100,6 +115,7 @@ class _CommentInputFieldState extends State<CommentInputField> {
     }
   }
 
+  // 댓글 수정 다이얼로그
   Future<void> _showEditDialog(
       String commentId, String currentContent, String commentUserId) async {
     final editController = TextEditingController(text: currentContent);
@@ -202,6 +218,7 @@ class _CommentInputFieldState extends State<CommentInputField> {
                   final comment = comments[index];
                   final content = comment['content'] as String? ?? '내용 없음';
                   final commentId = comment.id;
+                  final commentUserId = comment['userId'] as String? ?? '';
 
                   return ListTile(
                     title: Text(content),
