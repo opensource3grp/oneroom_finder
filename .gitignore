@@ -10,8 +10,6 @@
 .svn/
 migrate_working_dir/
 .dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
 .flutter-plugins-dependencies/
 # IntelliJ related
 *.iml
@@ -35,7 +33,8 @@ build/
 .pub-cache/
 .pub/
 /build/
-
+*.dill
+*.track.dill
 # Symbolication related
 app.*.symbols
 

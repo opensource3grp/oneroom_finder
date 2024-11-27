@@ -3,10 +3,12 @@ import 'package:oneroom_finder/home_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:developer' as developer;
 
+// 로그인/회원가입 화면
 class LoginSignupScreen extends StatefulWidget {
   const LoginSignupScreen({super.key});
 
   @override
+  // ignore: library_private_types_in_public_api
   _LoginSignupScreenState createState() => _LoginSignupScreenState();
 }
 
@@ -48,8 +50,12 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                     final prefs = await SharedPreferences.getInstance();
                     prefs.setBool('autoLogin', isAutoLogin);
                     Navigator.pushReplacement(
+                      // ignore: use_build_context_synchronously
                       context,
-                      MaterialPageRoute(builder: (context) => HomeScreen()),
+                      MaterialPageRoute(
+                          builder: (context) => const HomeScreen(
+                                posts: [],
+                              )),
                     );
                   },
                   style:
