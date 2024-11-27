@@ -75,7 +75,7 @@ class _CommentInputFieldState extends State<CommentInputField> {
 
       await commentRef.delete();
       // 댓글 삭제 후 review 필드 감소
-      await PostService().decrementReviewCount(widget.postId);
+      await PostService().incrementReviewCount(widget.postId);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('댓글이 삭제되었습니다.')),

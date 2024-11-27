@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -36,7 +37,6 @@ class PostService {
         imageUrl = await ref.getDownloadURL(); // 업로드된 이미지의 URL 가져오기
       } catch (e) {
         showDialog(
-          // ignore: use_build_context_synchronously
           context: context,
           builder: (context) => AlertDialog(
             title: const Text('이미지 업로드 실패'),
@@ -69,12 +69,10 @@ class PostService {
       });
 
       // 성공적으로 게시글 작성 후 UI 알림
-      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('게시글이 작성되었습니다.')),
       );
     } catch (e) {
-      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('게시글 작성 중 오류 발생: $e')),
       );
@@ -91,23 +89,44 @@ class PostService {
 
   // 게시글 수정 기능
   Future<void> updatePost(String postId, String title, String content,
-      String? type, String? roomType, File? image) async {
+      String? type, String? roomType, dynamic image) async {
     try {
       DocumentReference postRef = firestore.collection('posts').doc(postId);
 
       // 해당 postId가 있는지 확인
       DocumentSnapshot postSnapshot = await postRef.get();
-      if (postSnapshot.exists) {
-        // 게시글이 존재하면 업데이트
-        await postRef.update({
-          'title': title,
-          'content': content,
-          'updateAt': FieldValue.serverTimestamp(), // 수정 시간 업데이트
-        });
-      } else {
-        // 일치하는 postId가 없을 경우 오류 처리
+      if (!postSnapshot.exists) {
         throw '게시글이 존재하지 않습니다.';
       }
+      String? imageUrl;
+      if (image != null) {
+        final fileName = DateTime.now().millisecondsSinceEpoch.toString();
+        final ref = storage.ref('post_images/$fileName');
+
+        if (image is File) {
+          // 모바일에서 File 객체로 업로드
+          await ref.putFile(image);
+        } else if (image is Uint8List) {
+          // 웹에서 Uint8List로 업로드
+          await ref.putData(image);
+        }
+
+        imageUrl = await ref.getDownloadURL();
+      }
+
+      // 게시글 업데이트
+      final updateData = {
+        'title': title,
+        'content': content,
+        'updateAt': FieldValue.serverTimestamp(),
+        'type': type,
+        'roomType': roomType,
+      };
+      if (imageUrl != null) {
+        updateData['image'] = imageUrl; // 새 이미지 URL 추가
+      }
+
+      await postRef.update(updateData);
     } catch (e) {
       throw '게시글 수정 중 오류 발생: $e';
     }
@@ -122,27 +141,24 @@ class PostService {
     }
   }
 
-  // 댓글 추가 시 게시글의 review(댓글 개수) 증가
-  Future<void> incrementReviewCount(String postId) async {
+  //게시글 좋아요 기능
+  Future<void> incrementLikes(String postId) async {
     try {
-      DocumentReference postRef = firestore.collection('posts').doc(postId);
+      final postRef =
+          FirebaseFirestore.instance.collection('posts').doc(postId);
 
-      await postRef.update({
-        'review': FieldValue.increment(1), // 댓글 수 증가
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        final snapshot = await transaction.get(postRef);
+
+        if (!snapshot.exists) return;
+
+        final currentLikes = snapshot.data()?['likes'] ?? 0;
+        transaction.update(postRef, {'likes': currentLikes + 1});
       });
     } catch (e) {
-      throw '댓글 개수 증가 중 오류 발생: $e';
+      debugPrint('Error updating likes: $e');
     }
   }
 
-  Future<void> decrementReviewCount(String postId) async {
-    try {
-      DocumentReference postRef = firestore.collection('posts').doc(postId);
-      await postRef.update({
-        'review': FieldValue.increment(-1), // 댓글 수 감소
-      });
-    } catch (e) {
-      throw '댓글 개수 감소 중 오류 발생: $e';
-    }
-  }
+  incrementReviewCount(String postId) {}
 }
