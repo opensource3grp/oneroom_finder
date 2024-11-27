@@ -18,23 +18,6 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
   final TextEditingController _contentController = TextEditingController();
   String selectedTag = '삽니다';
   final List<String> tags = ['삽니다', '팝니다'];
-  File? selectedImage; // 선택된 이미지 파일
-
-  String? type = '월세'; // 거래 유형
-  String? title = '원룸'; // 타입 선택 (원룸, 투룸, 쓰리룸)
-
-  // 이미지를 갤러리에서 선택하는 함수
-  Future<void> _pickImage() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? pickedFile =
-        await picker.pickImage(source: ImageSource.gallery);
-
-    if (pickedFile != null) {
-      setState(() {
-        selectedImage = File(pickedFile.path);
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -127,34 +110,6 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
               maxLines: 5,
             ),
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _pickImage, // 이미지 선택 함수 호출
-              child: const Text('사진 추가'),
-            ),
-            if (selectedImage != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: Image.file(selectedImage!),
-              ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () async {
-                final pickedFile =
-                    await ImagePicker().pickImage(source: ImageSource.gallery);
-                if (pickedFile != null) {
-                  setState(() {
-                    selectedImage = File(pickedFile.path);
-                  });
-                }
-              },
-              child: const Text('사진 추가'),
-            ),
-            if (selectedImage != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: Image.file(selectedImage!),
-              ),
-            const SizedBox(height: 16),
             Center(
               child: ElevatedButton(
                 onPressed: () async {
@@ -167,8 +122,8 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
                     type: type, // 거래 유형 전달
                     roomType: title, // 타입 선택 전달
                   );
-                  // ignore: use_build_context_synchronously
-                  Navigator.pop(context); // 홈 화면으로 이동
+
+                  Navigator.pop(context);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange,
