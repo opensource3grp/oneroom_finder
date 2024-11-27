@@ -33,7 +33,8 @@ build/
 .pub-cache/
 .pub/
 /build/
-
+*.dill
+*.track.dill
 # Symbolication related
 app.*.symbols
 
