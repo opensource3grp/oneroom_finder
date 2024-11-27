@@ -17,7 +17,23 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
   String selectedTag = '삽니다';
+  String? title; // 타입 선택을 위한 변수
+  String? type; // 거래 유형 선택을 위한 변수
   final List<String> tags = ['삽니다', '팝니다'];
+  File? selectedImage; // 선택된 이미지 파일
+
+  final ImagePicker _picker = ImagePicker();
+
+  // 이미지 선택 함수
+  Future<void> _selectImage() async {
+    final XFile? pickedFile =
+        await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        selectedImage = File(pickedFile.path); // 선택된 이미지 파일
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -110,6 +126,25 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
               maxLines: 5,
             ),
             const SizedBox(height: 16),
+
+            // 이미지 선택 버튼
+            Row(
+              children: [
+                ElevatedButton(
+                  onPressed: _selectImage,
+                  style:
+                      ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                  child: const Text('이미지 선택'),
+                ),
+                if (selectedImage != null)
+                  const Padding(
+                    padding: EdgeInsets.only(left: 10),
+                    child: Text('이미지 선택됨'),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
             Center(
               child: ElevatedButton(
                 onPressed: () async {

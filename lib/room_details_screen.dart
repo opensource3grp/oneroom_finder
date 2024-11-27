@@ -1,9 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'dart:io';
-import 'comment.dart';
-import 'post_service.dart';
+//import 'package:image_picker/image_picker.dart';
+//import 'dart:io';
+//import 'comment.dart';
+//import 'post_service.dart';
 
 class RoomDetailsScreen extends StatelessWidget {
   final String postId;
@@ -109,7 +109,7 @@ class RoomDetailsScreen extends StatelessWidget {
                         ],
                       ),
                     );
-                  }).toList(),
+                  }),
                 const Divider(),
                 // 댓글 작성 입력 필드
                 const SizedBox(height: 8.0),
@@ -129,6 +129,7 @@ class CommentInputField extends StatefulWidget {
   const CommentInputField({super.key, required this.postId});
 
   @override
+  // ignore: library_private_types_in_public_api
   _CommentInputFieldState createState() => _CommentInputFieldState();
 }
 
@@ -154,6 +155,7 @@ class _CommentInputFieldState extends State<CommentInputField> {
     });
 
     _commentController.clear();
+    // ignore: use_build_context_synchronously
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('댓글이 추가되었습니다.')),
     );

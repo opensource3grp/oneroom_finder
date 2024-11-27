@@ -37,6 +37,7 @@ class PostService {
         imageUrl = await ref.getDownloadURL(); // 업로드된 이미지의 URL 가져오기
       } catch (e) {
         showDialog(
+          // ignore: use_build_context_synchronously
           context: context,
           builder: (context) => AlertDialog(
             title: const Text('이미지 업로드 실패'),
@@ -136,6 +137,8 @@ class PostService {
   Future<void> deletePost(String postId) async {
     await firestore.collection('posts').doc(postId).delete();
   }
+
+  incrementReviewCount(String postId) {}
   //북마크
   /*
   Future<void> likePost(String postId) async {
