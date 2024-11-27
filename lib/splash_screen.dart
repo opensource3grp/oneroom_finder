@@ -4,10 +4,12 @@ import 'package:oneroom_finder/signup_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:developer' as developer;
 
+// 스플래시 화면
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
   @override
+  // ignore: library_private_types_in_public_api
   _SplashScreenState createState() => _SplashScreenState();
 }
 
@@ -22,13 +24,14 @@ class _SplashScreenState extends State<SplashScreen> {
     final prefs = await SharedPreferences.getInstance();
     final autoLogin = prefs.getBool('autoLogin') ?? false;
 
-    await Future.delayed(const Duration(seconds: 3)); // 스플래시 화면 표시 시간
+    await Future.delayed(const Duration(seconds: 5)); // 스플래시 화면 표시 시간
 
     if (autoLogin) {
       developer.log('자동 로그인 성공');
       _navigateToHome(); // 자동 로그인 시 홈 화면으로 이동
     } else {
       Navigator.pushReplacement(
+        // ignore: use_build_context_synchronously
         context,
         MaterialPageRoute(builder: (context) => const LoginSignupScreen()),
       );
@@ -39,7 +42,10 @@ class _SplashScreenState extends State<SplashScreen> {
     // 홈 화면으로 이동하는 코드 작성
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => HomeScreen()),
+      MaterialPageRoute(
+          builder: (context) => const HomeScreen(
+                posts: [],
+              )),
     );
   }
 

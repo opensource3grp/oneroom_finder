@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:oneroom_finder/post_create_screen.dart';
-import 'room_details_screen.dart';
 import 'post_service.dart';
+import 'post_list_screen.dart';
+import 'post_card.dart';
 
 class HomeScreen extends StatefulWidget {
-  HomeScreen({Key? key}) : super(key: key);
+  final List<Map<String, String>> posts; // posts 추가
+
+  const HomeScreen({super.key, required this.posts});
 
   @override
+  // ignore: library_private_types_in_public_api
   _HomeScreenState createState() => _HomeScreenState();
 }
 
@@ -15,12 +19,19 @@ class _HomeScreenState extends State<HomeScreen> {
   final PostService postService = PostService();
   int _selectedIndex = 0;
 
-  static List<Widget> _widgetOptions = <Widget>[
-    _HomeTab(),
-    _MessageTab(),
-    _MapTab(),
-    _MyPageTab(),
-  ];
+  late List<Widget> _widgetOptions; // posts 전달을 위해 late로 초기화
+
+  @override
+  void initState() {
+    super.initState();
+    // posts 전달 대신 Firestore와 연동되도록 수정
+    _widgetOptions = <Widget>[
+      const HomeTab(), // Firestore에서 데이터를 가져오므로 posts 필요 없음
+      const MessageTab(),
+      const MapTab(),
+      const MyPageTab(),
+    ];
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -32,32 +43,40 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('원룸 알리미'),
-        backgroundColor: Colors.orange,
+        backgroundColor: Colors.white,
+        title: const Text(
+          '원룸 알리미',
+          style: TextStyle(color: Colors.orange),
+        ),
+        centerTitle: true,
+        elevation: 1,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search, color: Colors.black),
+            onPressed: () {},
+          ),
+          IconButton(
+            icon: const Icon(Icons.notifications, color: Colors.black),
+            onPressed: () {},
+          ),
+          IconButton(
+            icon: const Icon(Icons.menu, color: Colors.black),
+            onPressed: () {},
+          ),
+        ],
       ),
       body: _widgetOptions.elementAt(_selectedIndex),
       bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: '홈',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.message),
-            label: '메시지',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.map),
-            label: '지도',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: '마이페이지',
-          ),
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: Colors.orange,
+        unselectedItemColor: Colors.black54,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),
+          BottomNavigationBarItem(icon: Icon(Icons.message), label: '메시지'),
+          BottomNavigationBarItem(icon: Icon(Icons.map), label: '지도'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: '마이페이지'),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.orange,
-        unselectedItemColor: Colors.grey,
         onTap: _onItemTapped,
       ),
       floatingActionButton: FloatingActionButton(
@@ -76,84 +95,119 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _HomeTab extends StatelessWidget {
+class HomeTab extends StatelessWidget {
+  const HomeTab({super.key});
+
   @override
   Widget build(BuildContext context) {
     final PostService postService = PostService();
-    return StreamBuilder<QuerySnapshot>(
-      stream: postService.getPosts(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        }
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(
-            child: Text(
-              '게시글이 없습니다.',
-              style: TextStyle(fontSize: 16, color: Colors.black54),
-            ),
-          );
-        }
-        final posts = snapshot.data!.docs;
-        return ListView.builder(
-          itemCount: posts.length,
-          itemBuilder: (context, index) {
-            final post = posts[index];
-            final title = post['title'] ?? '제목 없음';
-            final content = post['content'] ?? '내용 없음';
-            return Card(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: ListTile(
-                title: Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("금오공대"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.sort), // 정렬 버튼
+            onPressed: () {
+              // PostListScreen으로 이동
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PostListScreen(),
                 ),
-                subtitle: Text(
-                  content,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 14, color: Colors.black54),
-                ),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => RoomDetailsScreen(
-                        postId: post.id,
-                      ),
-                    ),
-                  );
-                },
+              );
+            },
+          ),
+        ],
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: postService.getPosts(), // Firestore에서 게시글 스트림 가져오기
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(
+              child: Text(
+                '게시글이 없습니다.',
+                style: TextStyle(fontSize: 16, color: Colors.black54),
               ),
             );
-          },
-        );
-      },
+          }
+
+          final posts = snapshot.data!.docs;
+
+          return ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            itemCount: posts.length,
+            itemBuilder: (context, index) {
+              final post = posts[index];
+              final postData = post.data() as Map<String,
+                  dynamic>; // DocumentSnapshot의 data()를 Map으로 캐스팅
+
+              final title = postData['title'] ?? '제목 없음';
+              final content = postData['content'] ?? '내용 없음';
+              final location = postData['location'] ?? '위치 없음';
+              final price = postData['price'] ?? '가격 정보 없음';
+              final author = postData['author'] ?? '작성자 없음';
+              final image = postData['image'] ?? ''; // Image URL or path
+              final tag = postData['tag'] ?? ''; // 추가: tag 정보
+
+              return StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('posts')
+                    .doc(post.id)
+                    .collection('comments')
+                    .snapshots(), // comments 하위 컬렉션 스트림
+                builder: (context, commentSnapshot) {
+                  int reviewsCount = 0;
+                  if (commentSnapshot.hasData) {
+                    reviewsCount = commentSnapshot.data!.docs.length; // 후기 개수
+                  }
+
+                  return PostCard(
+                    tag: tag, // 추가: tag 전달
+                    post: post,
+                    title: title,
+                    content: content,
+                    location: location,
+                    price: price,
+                    author: author,
+                    image: image,
+                    reviewsCount: reviewsCount,
+                    postId: post.id,
+                  );
+                },
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }
 
-class _MessageTab extends StatelessWidget {
+class MessageTab extends StatelessWidget {
+  const MessageTab({super.key});
+
   @override
   Widget build(BuildContext context) {
-    return Center(child: Text('메시지 탭'));
+    return const Center(child: Text('메시지 탭'));
   }
 }
 
-class _MapTab extends StatelessWidget {
+class MapTab extends StatelessWidget {
+  const MapTab({super.key});
+
   @override
   Widget build(BuildContext context) {
-    return Center(child: Text('지도 탭'));
+    return const Center(child: Text('지도 탭'));
   }
 }
 
-class _MyPageTab extends StatelessWidget {
+class MyPageTab extends StatelessWidget {
+  const MyPageTab({super.key});
+
   @override
   Widget build(BuildContext context) {
     return ListView(
@@ -187,7 +241,8 @@ class _MyPageTab extends StatelessWidget {
     );
   }
 
-  Widget _buildMenuItem(BuildContext context, String title, IconData icon, VoidCallback onTap) {
+  Widget _buildMenuItem(
+      BuildContext context, String title, IconData icon, VoidCallback onTap) {
     return ListTile(
       leading: Icon(icon, color: Colors.orange),
       title: Text(title),
@@ -196,4 +251,3 @@ class _MyPageTab extends StatelessWidget {
     );
   }
 }
-

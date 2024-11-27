@@ -24,3 +24,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true  # Material Design 아이콘 사용 설정
+  assets:
+    - assets/logo.png

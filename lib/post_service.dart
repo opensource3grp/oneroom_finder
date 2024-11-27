@@ -37,6 +37,7 @@ class PostService {
         imageUrl = await ref.getDownloadURL(); // 업로드된 이미지의 URL 가져오기
       } catch (e) {
         showDialog(
+          // ignore: use_build_context_synchronously
           context: context,
           builder: (context) => AlertDialog(
             title: const Text('이미지 업로드 실패'),
@@ -134,29 +135,14 @@ class PostService {
 
   // 게시글 삭제 기능
   Future<void> deletePost(String postId) async {
-    try {
-      await firestore.collection('posts').doc(postId).delete();
-    } catch (e) {
-      throw '게시글 삭제 중 오류 발생: $e';
-    }
+    await firestore.collection('posts').doc(postId).delete();
   }
 
-  //게시글 좋아요 기능
-  Future<void> incrementLikes(String postId) async {
-    try {
-      final postRef =
-          FirebaseFirestore.instance.collection('posts').doc(postId);
-
-      await FirebaseFirestore.instance.runTransaction((transaction) async {
-        final snapshot = await transaction.get(postRef);
-
-        if (!snapshot.exists) return;
-
-        final currentLikes = snapshot.data()?['likes'] ?? 0;
-        transaction.update(postRef, {'likes': currentLikes + 1});
-      });
-    } catch (e) {
-      debugPrint('Error updating likes: $e');
-    }
+  incrementReviewCount(String postId) {}
+  //북마크
+  /*
+  Future<void> likePost(String postId) async {
+    final prefs = await DocumentReference.getInstance()
   }
+  */
 }

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:oneroom_finder/post_service.dart';
 
 class CommentInputField extends StatefulWidget {
   final String postId;
@@ -14,6 +15,10 @@ class CommentInputField extends StatefulWidget {
 class _CommentInputFieldState extends State<CommentInputField> {
   final TextEditingController _commentController = TextEditingController();
 
+  // Firebase Auth를 사용해 현재 사용자 ID 가져오기
+  User? currentUser = FirebaseAuth.instance.currentUser;
+
+  // 댓글 추가
   Future<void> _addComment() async {
     final comment = _commentController.text.trim();
 
@@ -25,12 +30,6 @@ class _CommentInputFieldState extends State<CommentInputField> {
     }
 
     try {
-      /*
-      final currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser == null) {
-        throw Exception('로그인 상태를 확인해주세요.');
-      }
-      */
       final commentRef = FirebaseFirestore.instance
           .collection('posts')
           .doc(widget.postId)
@@ -40,7 +39,11 @@ class _CommentInputFieldState extends State<CommentInputField> {
       await commentRef.set({
         'content': comment,
         'createdAt': FieldValue.serverTimestamp(),
+        'userId': currentUser!.uid, // 현재 사용자 ID 추가
       });
+
+      // 댓글 추가 후 review 필드 증가
+      await PostService().incrementReviewCount(widget.postId);
 
       _commentController.clear();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -53,14 +56,17 @@ class _CommentInputFieldState extends State<CommentInputField> {
     }
   }
 
+  // 댓글 삭제
   Future<void> _deleteComment(String commentId, String commentUserId) async {
     try {
-      /*
-      final currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser == null || currentUser.uid != commentUserId) {
-        throw Exception('삭제 권한이 없습니다.');
+      // 현재 사용자와 댓글 작성자가 동일한 경우에만 삭제 가능하도록 처리
+      if (currentUser!.uid != commentUserId) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('자신의 댓글만 삭제할 수 있습니다.')),
+        );
+        return;
       }
-      */
+
       final commentRef = FirebaseFirestore.instance
           .collection('posts')
           .doc(widget.postId)
@@ -68,6 +74,8 @@ class _CommentInputFieldState extends State<CommentInputField> {
           .doc(commentId);
 
       await commentRef.delete();
+      await PostService().incrementReviewCount(widget.postId);
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('댓글이 삭제되었습니다.')),
       );
@@ -78,15 +86,18 @@ class _CommentInputFieldState extends State<CommentInputField> {
     }
   }
 
+  // 댓글 수정
   Future<void> _editComment(
       String commentId, String newContent, String commentUserId) async {
     try {
-      /*
-      final currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser == null || currentUser.uid != commentUserId) {
-        throw Exception('수정 권한이 없습니다.');
+      // 현재 사용자와 댓글 작성자가 동일한 경우에만 수정 가능하도록 처리
+      if (currentUser!.uid != commentUserId) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('자신의 댓글만 수정할 수 있습니다.')),
+        );
+        return;
       }
-      */
+
       final commentRef = FirebaseFirestore.instance
           .collection('posts')
           .doc(widget.postId)
@@ -104,6 +115,7 @@ class _CommentInputFieldState extends State<CommentInputField> {
     }
   }
 
+  // 댓글 수정 다이얼로그
   Future<void> _showEditDialog(
       String commentId, String currentContent, String commentUserId) async {
     final editController = TextEditingController(text: currentContent);
@@ -152,9 +164,11 @@ class _CommentInputFieldState extends State<CommentInputField> {
               Expanded(
                 child: TextField(
                   controller: _commentController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: '댓글을 입력하세요...',
-                    border: OutlineInputBorder(),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
                   ),
                 ),
               ),
@@ -205,6 +219,7 @@ class _CommentInputFieldState extends State<CommentInputField> {
                   final content = comment['content'] as String? ?? '내용 없음';
                   final commentId = comment.id;
                   final commentUserId = comment['userId'] as String? ?? '';
+
                   return ListTile(
                     title: Text(content),
                     trailing: PopupMenuButton<String>(
