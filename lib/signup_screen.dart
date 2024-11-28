@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:oneroom_finder/home_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:developer' as developer;
-import 'package:firebase_auth/firebase_auth.dart'; // Firebase Auth 추가
+//import 'package:firebase_auth/firebase_auth.dart'; // Firebase Auth 추가
 
 class LoginSignupScreen extends StatefulWidget {
   const LoginSignupScreen({super.key});
@@ -53,10 +53,12 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                   onPressed: () async {
                     developer.log('Login button clicked');
                     try {
+                      /*
                       UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
                         email: emailController.text.trim(),
                         password: passwordController.text.trim(),
                       );
+                      */
                       final prefs = await SharedPreferences.getInstance();
                       prefs.setBool('autoLogin', isAutoLogin);
                       Navigator.pushReplacement(
@@ -99,10 +101,12 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                   onPressed: () async {
                     developer.log('Signup button clicked');
                     try {
+                      /*
                       UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
                         email: emailController.text.trim(),
                         password: passwordController.text.trim(),
                       );
+                      */
                       // 추가적으로 사용자 정보를 Firestore에 저장하는 로직을 추가할 수 있습니다.
                       Navigator.pushReplacement(
                         context,
