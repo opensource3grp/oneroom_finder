@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart'; // 이미지 선택
 import 'dart:io'; // 이미지 파일 관련
@@ -19,16 +20,17 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
   String? type;
   String? roomType;
   final List<String> tags = ['삽니다', '팝니다'];
-  File? selectedImage;
+  File? selectedImage; // 선택된 이미지 파일
 
   final ImagePicker _picker = ImagePicker();
 
+  // 이미지 선택 함수
   Future<void> _selectImage() async {
     final XFile? pickedFile =
         await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
-        selectedImage = File(pickedFile.path);
+        selectedImage = File(pickedFile.path); // 선택된 이미지 파일
       });
     }
   }
@@ -64,12 +66,14 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
               },
             ),
             const SizedBox(height: 16),
+
+            // 타입 선택 (원룸, 투룸, 쓰리룸)
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(
                 labelText: '타입 선택',
                 border: OutlineInputBorder(),
               ),
-              value: roomType,
+              value: title,
               items: ['원룸', '투룸', '쓰리룸']
                   .map((item) => DropdownMenuItem(
                         value: item,
@@ -78,11 +82,13 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
                   .toList(),
               onChanged: (value) {
                 setState(() {
-                  roomType = value;
+                  title = value;
                 });
               },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
+
+            // 거래 유형 (월세, 전세)
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(
                 labelText: '거래 유형',
@@ -102,6 +108,7 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
               },
             ),
             const SizedBox(height: 16),
+
             TextField(
               controller: _titleController,
               decoration: const InputDecoration(
@@ -119,6 +126,8 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
               maxLines: 5,
             ),
             const SizedBox(height: 16),
+
+            // 이미지 선택 버튼
             Row(
               children: [
                 ElevatedButton(
@@ -135,6 +144,7 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
               ],
             ),
             const SizedBox(height: 16),
+
             Center(
               child: ElevatedButton(
                 onPressed: () async {
@@ -143,13 +153,16 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
                     _titleController.text.trim(),
                     _contentController.text.trim(),
                     tag: selectedTag,
-                    image: selectedImage,
-                    type: type,
-                    roomType: roomType,
+                    image: selectedImage, // 이미지 전달
+                    type: type, // 거래 유형 전달
+                    roomType: title, // 타입 선택 전달
                   );
+
                   Navigator.pop(context);
                 },
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                ),
                 child: const Text('작성하기'),
               ),
             ),
@@ -157,6 +170,27 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
         ),
       ),
     );
+  }
+
+  // 이미지 선택 메서드
+  Future<void> _selectImage() async {
+    try {
+      final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+      if (pickedFile != null) {
+        final bytes = await pickedFile.readAsBytes();
+        setState(() {
+          selectedImage = bytes;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('이미지를 선택하지 않았습니다.')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('이미지 선택 중 오류가 발생했습니다: $e')),
+      );
+    }
   }
 
   @override

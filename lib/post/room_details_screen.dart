@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -7,8 +8,9 @@ import 'post_service.dart';
 
 class RoomDetailsScreen extends StatelessWidget {
   final String postId;
+  final PostService postService = PostService();
 
-  const RoomDetailsScreen({super.key, required this.postId});
+  RoomDetailsScreen({super.key, required this.postId});
 
   Stream<DocumentSnapshot> fetchPostDetails() {
     return FirebaseFirestore.instance
@@ -19,6 +21,7 @@ class RoomDetailsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
     return Scaffold(
       appBar: AppBar(
         title: const Text('원룸 상세 정보'),
@@ -184,7 +187,7 @@ class RoomDetailsScreen extends StatelessWidget {
                 );
               } else if (value == 'delete') {
                 // 삭제 버튼 클릭 시 처리
-                PostService().deletePost(postId).then((_) {
+                postService.deletePost(context, postId).then((_) {
                   // ignore: use_build_context_synchronously
                   Navigator.of(context).pop();
                   // ignore: use_build_context_synchronously
@@ -235,7 +238,8 @@ class RoomDetailsScreen extends StatelessWidget {
           final String content = post['content'] ?? '내용 없음';
           final String author = post['author'] ?? '익명';
           final int likes = post['likes'] ?? 0;
-          final int reviewsCount = post['reviewsCount'] ?? 0; // 후기 개수
+          final int comment = post['review'] ?? 0;
+          //final int reviewsCount = post['reviewsCount'] ?? 0; // 후기 개수
           final String? imageUrl = post['image'];
 
           return SingleChildScrollView(
@@ -280,7 +284,25 @@ class RoomDetailsScreen extends StatelessWidget {
                   const SizedBox(height: 16.0),
                   Row(
                     children: [
-                      const Icon(Icons.thumb_up, color: Colors.orange),
+                      GestureDetector(
+                        onTap: () async {
+                          if (userId != null) {
+                            try {
+                              await postService.toggleLike(
+                                  postId, userId, context);
+                            } catch (e) {
+                              postService.showErrorDialog(
+                                  context, e.toString());
+                            }
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('좋아요는 로그인 후 이용 가능합니다.')),
+                            );
+                          }
+                        },
+                        child: const Icon(Icons.thumb_up, color: Colors.orange),
+                      ),
                       const SizedBox(width: 8.0),
                       Text('$likes명이 좋아합니다.'),
                     ],
@@ -290,7 +312,7 @@ class RoomDetailsScreen extends StatelessWidget {
                     children: [
                       const Icon(Icons.comment, color: Colors.orange),
                       const SizedBox(width: 8.0),
-                      Text('$reviewsCount개의 후기'),
+                      Text('$comment개의 후기'),
                     ],
                   ),
                   const SizedBox(height: 24.0),

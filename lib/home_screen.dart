@@ -14,7 +14,6 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.posts});
 
   @override
-  // ignore: library_private_types_in_public_api
   _HomeScreenState createState() => _HomeScreenState();
 }
 
