@@ -9,7 +9,6 @@ class PostCreateScreen extends StatefulWidget {
   const PostCreateScreen({super.key, required this.postService});
 
   @override
-  // ignore: library_private_types_in_public_api
   _PostCreateScreenState createState() => _PostCreateScreenState();
 }
 
@@ -17,20 +16,19 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
   String selectedTag = '삽니다';
-  String? title; // 타입 선택을 위한 변수
-  String? type; // 거래 유형 선택을 위한 변수
+  String? type;
+  String? roomType;
   final List<String> tags = ['삽니다', '팝니다'];
-  File? selectedImage; // 선택된 이미지 파일
+  File? selectedImage;
 
   final ImagePicker _picker = ImagePicker();
 
-  // 이미지 선택 함수
   Future<void> _selectImage() async {
     final XFile? pickedFile =
         await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
-        selectedImage = File(pickedFile.path); // 선택된 이미지 파일
+        selectedImage = File(pickedFile.path);
       });
     }
   }
@@ -66,14 +64,12 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
               },
             ),
             const SizedBox(height: 16),
-
-            // 타입 선택 (원룸, 투룸, 쓰리룸)
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(
                 labelText: '타입 선택',
                 border: OutlineInputBorder(),
               ),
-              value: title,
+              value: roomType,
               items: ['원룸', '투룸', '쓰리룸']
                   .map((item) => DropdownMenuItem(
                         value: item,
@@ -82,13 +78,11 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
                   .toList(),
               onChanged: (value) {
                 setState(() {
-                  title = value;
+                  roomType = value;
                 });
               },
             ),
-            const SizedBox(height: 10),
-
-            // 거래 유형 (월세, 전세)
+            const SizedBox(height: 16),
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(
                 labelText: '거래 유형',
@@ -108,7 +102,6 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
               },
             ),
             const SizedBox(height: 16),
-
             TextField(
               controller: _titleController,
               decoration: const InputDecoration(
@@ -126,8 +119,6 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
               maxLines: 5,
             ),
             const SizedBox(height: 16),
-
-            // 이미지 선택 버튼
             Row(
               children: [
                 ElevatedButton(
@@ -144,7 +135,6 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
               ],
             ),
             const SizedBox(height: 16),
-
             Center(
               child: ElevatedButton(
                 onPressed: () async {
@@ -153,16 +143,13 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
                     _titleController.text.trim(),
                     _contentController.text.trim(),
                     tag: selectedTag,
-                    image: selectedImage, // 이미지 전달
-                    type: type, // 거래 유형 전달
-                    roomType: title, // 타입 선택 전달
+                    image: selectedImage,
+                    type: type,
+                    roomType: roomType,
                   );
-
                   Navigator.pop(context);
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                ),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
                 child: const Text('작성하기'),
               ),
             ),

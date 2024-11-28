@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:oneroom_finder/post_create_screen.dart';
-import 'post_service.dart';
-import 'post_list_screen.dart';
-import 'post_card.dart';
+import 'package:oneroom_finder/post/post_create_screen.dart';
+import 'post/post_service.dart';
+import 'post/post_list_screen.dart';
+import 'post/post_card.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'chat_room/chat_create.dart';
+import 'post/post_search.dart';
 
 class HomeScreen extends StatefulWidget {
   final List<Map<String, String>> posts; // posts 추가
@@ -18,6 +21,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final PostService postService = PostService();
   int _selectedIndex = 0;
+  String searchQuery = '';
 
   late List<Widget> _widgetOptions; // posts 전달을 위해 late로 초기화
 
@@ -53,7 +57,13 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.search, color: Colors.black),
-            onPressed: () {},
+            onPressed: () {
+              // Open the search bar
+              showSearch(
+                context: context,
+                delegate: PostSearchDelegate(),
+              );
+            },
           ),
           IconButton(
             icon: const Icon(Icons.notifications, color: Colors.black),
@@ -79,18 +89,22 @@ class _HomeScreenState extends State<HomeScreen> {
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => PostCreateScreen(postService: postService),
-            ),
-          );
-        },
-        backgroundColor: Colors.orange,
-        child: const Icon(Icons.add),
-      ),
+      // 홈탭에만 플로팅 버튼을 추가
+      floatingActionButton: _selectedIndex == 0
+          ? FloatingActionButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        PostCreateScreen(postService: postService),
+                  ),
+                );
+              },
+              backgroundColor: Colors.orange,
+              child: const Icon(Icons.add),
+            )
+          : null, // 다른 탭에서는 플로팅 버튼 숨김
     );
   }
 }
@@ -187,12 +201,302 @@ class HomeTab extends StatelessWidget {
   }
 }
 
-class MessageTab extends StatelessWidget {
+class MessageTab extends StatefulWidget {
   const MessageTab({super.key});
 
   @override
+  // ignore: library_private_types_in_public_api
+  _MessageTabState createState() => _MessageTabState();
+}
+
+class _MessageTabState extends State<MessageTab> {
+  bool isEditing = false;
+  Set<String> selectedChatRooms = {};
+
+  @override
   Widget build(BuildContext context) {
-    return const Center(child: Text('메시지 탭'));
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('메시지'),
+        centerTitle: true,
+        backgroundColor: Colors.orange,
+        actions: [
+          if (!isEditing)
+            IconButton(
+              icon: const Icon(Icons.edit),
+              onPressed: () {
+                setState(() {
+                  isEditing = true;
+                });
+              },
+            ),
+          if (isEditing)
+            IconButton(
+              icon: const Icon(Icons.delete),
+              onPressed: () async {
+                if (selectedChatRooms.isNotEmpty) {
+                  for (String chatRoomId in selectedChatRooms) {
+                    await FirebaseFirestore.instance
+                        .collection('chatRooms')
+                        .doc(chatRoomId)
+                        .delete();
+                  }
+                  setState(() {
+                    isEditing = false;
+                    selectedChatRooms.clear();
+                  });
+                }
+              },
+            ),
+          if (isEditing)
+            IconButton(
+              icon: const Icon(Icons.done),
+              onPressed: () {
+                setState(() {
+                  isEditing = false;
+                  selectedChatRooms.clear();
+                });
+              },
+            ),
+        ],
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('chatRooms').snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(
+              child: Text(
+                '대화방이 없습니다.',
+                style: TextStyle(fontSize: 16, color: Colors.black54),
+              ),
+            );
+          }
+
+          final chatRooms = snapshot.data!.docs;
+
+          return ListView.builder(
+            itemCount: chatRooms.length,
+            itemBuilder: (context, index) {
+              final chatRoom = chatRooms[index];
+              final chatRoomData = chatRoom.data() as Map<String, dynamic>;
+              final chatRoomName = chatRoomData['name'] ?? '대화방';
+              final lastMessage = chatRoomData['lastMessage'] ?? '';
+              final lastMessageTime =
+                  (chatRoomData['lastMessageTime'] as Timestamp?)?.toDate();
+              final unreadCount = chatRoomData['unreadCount'] ?? 0;
+
+              return ListTile(
+                title: Text(
+                  chatRoomName,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle: Text(
+                  lastMessage,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.black54),
+                ),
+                leading: CircleAvatar(
+                  backgroundColor: Colors.orange,
+                  child: Text(
+                    chatRoomName.isNotEmpty ? chatRoomName[0] : '?',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+                trailing: isEditing
+                    ? Icon(
+                        selectedChatRooms.contains(chatRoom.id)
+                            ? Icons.check_circle
+                            : Icons.circle_outlined,
+                        color: selectedChatRooms.contains(chatRoom.id)
+                            ? Colors.orange
+                            : Colors.grey,
+                      )
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          if (lastMessageTime != null)
+                            Text(
+                              '${lastMessageTime.hour}:${lastMessageTime.minute.toString().padLeft(2, '0')}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          if (unreadCount > 0)
+                            Container(
+                              margin: const EdgeInsets.only(top: 5),
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 2, horizontal: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '$unreadCount',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                onTap: () {
+                  if (isEditing) {
+                    setState(() {
+                      if (selectedChatRooms.contains(chatRoom.id)) {
+                        selectedChatRooms.remove(chatRoom.id);
+                      } else {
+                        selectedChatRooms.add(chatRoom.id);
+                      }
+                    });
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            ChatRoomScreen(chatRoomId: chatRoom.id),
+                      ),
+                    );
+                  }
+                },
+              );
+            },
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          showDialog(
+            context: context,
+            builder: (context) => const CreateChatRoomDialog(),
+          );
+        },
+        backgroundColor: Colors.orange,
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
+
+class ChatRoomScreen extends StatelessWidget {
+  final String chatRoomId;
+
+  const ChatRoomScreen({super.key, required this.chatRoomId});
+
+  @override
+  Widget build(BuildContext context) {
+    final TextEditingController messageController = TextEditingController();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('채팅방'),
+        backgroundColor: Colors.orange,
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('chatRooms')
+                  .doc(chatRoomId)
+                  .collection('messages')
+                  .orderBy('timestamp', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      '메시지가 없습니다.',
+                      style: TextStyle(fontSize: 16, color: Colors.black54),
+                    ),
+                  );
+                }
+
+                final messages = snapshot.data!.docs;
+
+                return ListView.builder(
+                  reverse: true,
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    final message = messages[index];
+                    final messageData = message.data() as Map<String, dynamic>;
+                    final sender = messageData['sender'] ?? '알 수 없음';
+                    final text = messageData['text'] ?? '';
+                    final isMe = sender ==
+                        FirebaseAuth.instance.currentUser?.displayName;
+                    return Align(
+                      alignment:
+                          isMe ? Alignment.centerRight : Alignment.centerLeft,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 10, horizontal: 15),
+                        margin: const EdgeInsets.symmetric(
+                            vertical: 5, horizontal: 10),
+                        decoration: BoxDecoration(
+                          color: isMe ? Colors.orange : Colors.grey[300],
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          text,
+                          style: TextStyle(
+                              color: isMe ? Colors.white : Colors.black),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: messageController,
+                    decoration: const InputDecoration(
+                      hintText: '메시지 입력...',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.send, color: Colors.orange),
+                  onPressed: () async {
+                    final text = messageController.text.trim();
+                    if (text.isNotEmpty) {
+                      await FirebaseFirestore.instance
+                          .collection('chatRooms')
+                          .doc(chatRoomId)
+                          .collection('messages')
+                          .add({
+                        'text': text,
+                        'sender':
+                            FirebaseAuth.instance.currentUser?.displayName ??
+                                '알 수 없음',
+                        'timestamp': FieldValue.serverTimestamp(),
+                      });
+                      messageController.clear();
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

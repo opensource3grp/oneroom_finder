@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:oneroom_finder/post_service.dart';
+import 'package:oneroom_finder/post/post_service.dart';
 
 class CommentInputField extends StatefulWidget {
   final String postId;
