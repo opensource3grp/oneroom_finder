@@ -10,6 +10,7 @@ class LoginSignupScreen extends StatefulWidget {
   const LoginSignupScreen({super.key});
 
   @override
+  // ignore: library_private_types_in_public_api
   _LoginSignupScreenState createState() => _LoginSignupScreenState();
 }
 
@@ -19,10 +20,13 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
   bool isAutoLogin = false;
 
   final List<String> jobOptions = ['학생', '공인중개사'];
-  
-  final TextEditingController emailController = TextEditingController(); // 이메일 컨트롤러
-  final TextEditingController passwordController = TextEditingController(); // 비밀번호 컨트롤러
-  final TextEditingController nicknameController = TextEditingController(); // 닉네임 컨트롤러
+
+  final TextEditingController emailController =
+      TextEditingController(); // 이메일 컨트롤러
+  final TextEditingController passwordController =
+      TextEditingController(); // 비밀번호 컨트롤러
+  final TextEditingController nicknameController =
+      TextEditingController(); // 닉네임 컨트롤러
 
   @override
   Widget build(BuildContext context) {
@@ -62,14 +66,19 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                       final prefs = await SharedPreferences.getInstance();
                       prefs.setBool('autoLogin', isAutoLogin);
                       Navigator.pushReplacement(
+                        // ignore: use_build_context_synchronously
                         context,
-                        MaterialPageRoute(builder: (context) => const HomeScreen(posts: [])),
+                        MaterialPageRoute(
+                            builder: (context) => const HomeScreen(posts: [])),
                       );
                     } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('로그인 실패: $e')));
+                      // ignore: use_build_context_synchronously
+                      ScaffoldMessenger.of(context)
+                          .showSnackBar(SnackBar(content: Text('로그인 실패: $e')));
                     }
                   },
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                  style:
+                      ElevatedButton.styleFrom(backgroundColor: Colors.orange),
                   child: const Text('로그인'),
                 ),
                 TextButton(
@@ -110,13 +119,16 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                       // 추가적으로 사용자 정보를 Firestore에 저장하는 로직을 추가할 수 있습니다.
                       Navigator.pushReplacement(
                         context,
-                        MaterialPageRoute(builder: (context) => const HomeScreen(posts: [])),
+                        MaterialPageRoute(
+                            builder: (context) => const HomeScreen(posts: [])),
                       );
                     } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('회원가입 실패: $e')));
+                      ScaffoldMessenger.of(context)
+                          .showSnackBar(SnackBar(content: Text('회원가입 실패: $e')));
                     }
                   },
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                  style:
+                      ElevatedButton.styleFrom(backgroundColor: Colors.orange),
                   child: const Text('회원가입'),
                 ),
                 TextButton(
@@ -135,7 +147,8 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
     );
   }
 
-  Widget _buildEmailField() { // 이메일 입력 필드 생성
+  Widget _buildEmailField() {
+    // 이메일 입력 필드 생성
     return Padding(
       padding: const EdgeInsets.only(top: 10),
       child: TextFormField(
@@ -149,7 +162,8 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
     );
   }
 
-  Widget _buildPasswordField() { // 비밀번호 입력 필드 생성
+  Widget _buildPasswordField() {
+    // 비밀번호 입력 필드 생성
     return Padding(
       padding: const EdgeInsets.only(top: 10),
       child: TextFormField(
@@ -163,7 +177,8 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
     );
   }
 
-  Widget _buildPasswordConfirmField() { // 비밀번호 확인 필드 생성
+  Widget _buildPasswordConfirmField() {
+    // 비밀번호 확인 필드 생성
     return Padding(
       padding: const EdgeInsets.only(top: 10),
       child: TextFormField(
@@ -176,48 +191,47 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
     );
   }
 
-  Widget _buildDropdownField(String label, List<String> items, String? selectedItem, ValueChanged<String?> onChanged) { // 드롭다운 필드 생성
+  Widget _buildDropdownField(String label, List<String> items,
+      String? selectedItem, ValueChanged<String?> onChanged) {
+    // 드롭다운 필드 생성
     return Padding(
-      padding: const EdgeInsets.only(top: 10),
-      child:
-          DropdownButtonFormField<String>(
-            decoration:
-            InputDecoration(labelText:
-            label, border:
-            const OutlineInputBorder()),
-            value:
-            selectedItem,
-            items:
-            items.map((item) =>
-            DropdownMenuItem(value:
-            item, child:
-            Text(item))).toList(),
-            onChanged:
-            onChanged,
-          ));
+        padding: const EdgeInsets.only(top: 10),
+        child: DropdownButtonFormField<String>(
+          decoration: InputDecoration(
+              labelText: label, border: const OutlineInputBorder()),
+          value: selectedItem,
+          items: items
+              .map((item) => DropdownMenuItem(value: item, child: Text(item)))
+              .toList(),
+          onChanged: onChanged,
+        ));
   }
 
-  Widget _buildTextField(String label) { // 일반 텍스트 필드 생성
+  Widget _buildTextField(String label) {
+    // 일반 텍스트 필드 생성
     return Padding(
-      padding:
-      const EdgeInsets.only(top:
-      10),
-      child:
-      TextFormField(decoration:
-      InputDecoration(labelText:
-      label, border:
-      const OutlineInputBorder()),));
+        padding: const EdgeInsets.only(top: 10),
+        child: TextFormField(
+          decoration: InputDecoration(
+              labelText: label, border: const OutlineInputBorder()),
+        ));
   }
 
-  Widget _buildAutoLoginCheckbox() { // 자동 로그인 체크박스 생성
-    return Row(mainAxisAlignment:
-    MainAxisAlignment.start, children:[
-      Checkbox(value:isAutoLogin,onChanged:(value){
-        setState(() {
-          isAutoLogin =
-          value ?? false;
-        });
-      },),const
-      Text('자동 로그인'),],);
+  Widget _buildAutoLoginCheckbox() {
+    // 자동 로그인 체크박스 생성
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        Checkbox(
+          value: isAutoLogin,
+          onChanged: (value) {
+            setState(() {
+              isAutoLogin = value ?? false;
+            });
+          },
+        ),
+        const Text('자동 로그인'),
+      ],
+    );
   }
 }

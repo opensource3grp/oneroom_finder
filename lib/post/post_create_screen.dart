@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart'; // 이미지 선택
-import 'dart:io'; // 이미지 파일 관련
+//import 'dart:io'; // 이미지 파일 관련
 import 'post_service.dart'; // PostService import
 
 class PostCreateScreen extends StatefulWidget {
