@@ -1,7 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:oneroom_finder/home_screen.dart';
 import 'package:oneroom_finder/signup_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Firebase Auth 추가
 import 'dart:developer' as developer;
 
 // 스플래시 화면
@@ -38,15 +40,40 @@ class _SplashScreenState extends State<SplashScreen> {
     }
   }
 
-  void _navigateToHome() {
-    // 홈 화면으로 이동하는 코드 작성
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-          builder: (context) => const HomeScreen(
-                posts: [],
-              )),
-    );
+  void _navigateToHome() async {
+    // 자동 로그인된 사용자 정보 가져오기
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (userDoc.exists) {
+        final userData = userDoc.data();
+        final nickname = userData?['nickname'] ?? '알 수 없음';
+        final job = userData?['job'] ?? '직업 없음';
+        final uid = user.uid; // UID를 추가로 가져옵니다.
+
+        // 홈 화면으로 이동
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => HomeScreen(
+              uid: uid, // uid를 전달합니다.
+              nickname: nickname,
+              job: job,
+            ),
+          ),
+        );
+      }
+    } else {
+      // 사용자가 로그인하지 않은 경우 로그인 화면으로 이동
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginSignupScreen()),
+      );
+    }
   }
 
   @override

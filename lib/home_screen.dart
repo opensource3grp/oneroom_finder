@@ -7,11 +7,24 @@ import 'post/post_card.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'chat_room/chat_create.dart';
 import 'post/post_search.dart';
+// ignore: depend_on_referenced_packages
+import 'package:intl/intl.dart';
+import 'dart:developer' as developer;
+import 'post/room_details_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  final List<Map<String, String>> posts; // posts 추가
+  //final List<Map<String, String>> posts; // posts 추가
+  final String nickname; // 닉네임
+  final String job; // 직업
+  final String uid;
 
-  const HomeScreen({super.key, required this.posts});
+  const HomeScreen({
+    super.key,
+    //required this.posts,
+    required this.nickname, // nickname 추가
+    required this.job,
+    required this.uid, // job 추가
+  });
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -20,20 +33,27 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final PostService postService = PostService();
   int _selectedIndex = 0;
-  String searchQuery = '';
-
-  late List<Widget> _widgetOptions; // posts 전달을 위해 late로 초기화
+  //String searchQuery = '';
+  late String uid;
 
   @override
   void initState() {
     super.initState();
-    // posts 전달 대신 Firestore와 연동되도록 수정
-    _widgetOptions = <Widget>[
-      const HomeTab(), // Firestore에서 데이터를 가져오므로 posts 필요 없음
-      const MessageTab(),
-      const MapTab(),
-      const MyPageTab(),
-    ];
+    // // posts 전달 대신 Firestore와 연동되도록 수정
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   // 위젯이 완전히 렌더링된 후에 실행할 코드
+    //   developer.log(
+    //       'HomeScreen loaded with nickname: ${widget.nickname}, job: ${widget.job}');
+    // });
+    // FirebaseAuth를 사용해 uid 가져오기
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      uid = currentUser.uid;
+      developer.log('Current User UID: $uid');
+    } else {
+      developer.log('No user is logged in.');
+      // 로그인이 안된 경우 처리
+    }
   }
 
   void _onItemTapped(int index) {
@@ -44,6 +64,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // uid를 로그에 출력하거나 다른 곳에서 사용 가능
+    developer.log('UID is being used in HomeScreen: $uid');
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -74,7 +97,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: _widgetOptions.elementAt(_selectedIndex),
+
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.orange,
@@ -88,6 +111,14 @@ class _HomeScreenState extends State<HomeScreen> {
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
       ),
+      // 각 탭에 해당하는 화면을 표시하는 부분 추가
+      body: _selectedIndex == 0
+          ? HomeTab() // 홈 화면
+          : _selectedIndex == 1
+              ? MessageTab() // 메시지 탭
+              : _selectedIndex == 2
+                  ? MapTab() // 지도 탭
+                  : MyPageTab(), // 마이페이지 탭
       // 홈탭에만 플로팅 버튼을 추가
       floatingActionButton: _selectedIndex == 0
           ? FloatingActionButton(
@@ -177,18 +208,29 @@ class HomeTab extends StatelessWidget {
                   if (commentSnapshot.hasData) {
                     reviewsCount = commentSnapshot.data!.docs.length; // 후기 개수
                   }
-
-                  return PostCard(
-                    tag: tag, // 추가: tag 전달
-                    post: post,
-                    title: title,
-                    content: content,
-                    location: location,
-                    price: price,
-                    author: author,
-                    image: image,
-                    reviewsCount: reviewsCount,
-                    postId: post.id,
+                  return GestureDetector(
+                    onTap: () {
+                      // 게시글 클릭 시 RoomDetailScreen으로 이동
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              RoomDetailsScreen(postId: post.id),
+                        ),
+                      );
+                    },
+                    child: PostCard(
+                      tag: tag,
+                      post: post,
+                      title: title,
+                      content: content,
+                      location: location,
+                      price: price,
+                      author: author,
+                      image: image,
+                      reviewsCount: reviewsCount,
+                      postId: post.id,
+                    ),
                   );
                 },
               );
@@ -287,16 +329,29 @@ class _MessageTabState extends State<MessageTab> {
               final lastMessageTime =
                   (chatRoomData['lastMessageTime'] as Timestamp?)?.toDate();
               final unreadCount = chatRoomData['unreadCount'] ?? 0;
+              final createdTime =
+                  (chatRoomData['createdAt'] as Timestamp?)?.toDate();
 
               return ListTile(
                 title: Text(
                   chatRoomName,
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                subtitle: Text(
-                  lastMessage,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.black54),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      lastMessage,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.black54),
+                    ),
+                    if (createdTime != null)
+                      Text(
+                        '생성일: ${DateFormat('yyyy/MM/dd HH:mm').format(createdTime)}',
+                        style: const TextStyle(
+                            fontSize: 12, color: Colors.black54),
+                      ),
+                  ],
                 ),
                 leading: CircleAvatar(
                   backgroundColor: Colors.orange,
@@ -320,7 +375,8 @@ class _MessageTabState extends State<MessageTab> {
                         children: [
                           if (lastMessageTime != null)
                             Text(
-                              '${lastMessageTime.hour}:${lastMessageTime.minute.toString().padLeft(2, '0')}',
+                              DateFormat('yyyy.MM.dd HH:mm')
+                                  .format(lastMessageTime), // 포맷을 변경
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: Colors.black54,
