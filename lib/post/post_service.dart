@@ -8,6 +8,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 class PostService {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final FirebaseStorage storage = FirebaseStorage.instance;
+  final AuthService authService = AuthService(); // AuthService 인스턴스 생성
 
   Future<void> createPost(
     BuildContext context,
@@ -26,31 +27,36 @@ class PostService {
     }
 
     String? imageUrl;
+    final currentUser = await authService.isUserLoggedIn();
+    if (!currentUser) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('로그인된 사용자가 없습니다.')),
+      );
+      return;
+    }
+    final String authorId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
-    // 이미지가 있을 경우 Firebase Storage에 업로드
+    if (authorId.isEmpty) {
+      // UID가 null일 때 처리
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('사용자 ID를 찾을 수 없습니다.')),
+      );
+      return;
+    }
+
+    // 이미지가 선택되었으면 Firebase Storage에 업로드
     if (image != null) {
-      try {
-        final fileName = DateTime.now().millisecondsSinceEpoch.toString();
-        final ref = storage.ref('post_images/$fileName');
-        await ref.putData(image); // 이미지 업로드
-        imageUrl = await ref.getDownloadURL(); // 업로드된 이미지의 URL 가져오기
-      } catch (e) {
-        showDialog(
-          // ignore: use_build_context_synchronously
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('이미지 업로드 실패'),
-            content: Text('오류 메시지: $e'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context), // 팝업 닫기
-                child: const Text('확인'),
-              ),
-            ],
-          ),
-        );
-        imageUrl = null; // 이미지 업로드 실패 시 null 처리
-      }
+      // Firebase Storage에 업로드할 파일 경로 지정
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('post_images/${DateTime.now().millisecondsSinceEpoch}');
+
+      // 이미지를 Firebase Storage에 업로드
+      final uploadTask = storageRef.putData(image);
+      await uploadTask.whenComplete(() async {
+        // 업로드 완료 후 이미지 URL 가져오기
+        imageUrl = await storageRef.getDownloadURL();
+      });
     }
 
     // Firestore에 게시글 저장
@@ -62,8 +68,9 @@ class PostService {
         'likes': 0,
         'review': 0,
         'userId': FirebaseAuth.instance.currentUser?.uid,
+        'authorId': authorId, // authorId 추가
         'createAt': FieldValue.serverTimestamp(),
-        'image': imageUrl, // 이미지 URL 저장 (이미지가 없으면 null)
+        'imageUrl': imageUrl, // 이미지 URL 저장 (이미지가 없으면 null)
         'type': type, // 거래 유형 저장
         'roomType': roomType, // 타입 저장
       });
@@ -87,6 +94,35 @@ class PostService {
         .collection('posts')
         .orderBy('createAt', descending: true)
         .snapshots();
+  }
+
+  // 게시글 상세 조회 기능
+  Future<Map<String, dynamic>?> fetchPostDetails(String postId) async {
+    try {
+      final postDoc = await firestore.collection('posts').doc(postId).get();
+
+      if (!postDoc.exists) {
+        throw Exception('게시글을 찾을 수 없습니다.');
+      }
+
+      final postData = postDoc.data() as Map<String, dynamic>;
+      final authorId = postData['authorId']; // authorId 포함
+
+      // 반환할 데이터에 authorId 포함
+      return {
+        'title': postData['title'],
+        'content': postData['content'],
+        'likes': postData['likes'],
+        'review': postData['review'],
+        'authorId': authorId, // authorId 추가
+        'image': postData['image'],
+        'type': postData['type'],
+        'roomType': postData['roomType'],
+        'createAt': postData['createAt'],
+      };
+    } catch (e) {
+      throw Exception('게시글 상세 조회 중 오류 발생: $e');
+    }
   }
 
   // 게시글 수정 기능
@@ -248,5 +284,42 @@ class PostService {
         );
       },
     );
+  }
+}
+
+class AuthService {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  // 로그인 여부 체크
+  Future<bool> isUserLoggedIn() async {
+    final currentUser = _auth.currentUser;
+    return currentUser != null;
+  }
+
+  // 로그인한 사용자 UID 반환
+  String? getUserId() {
+    return _auth.currentUser?.uid;
+  }
+
+  // 사용자 로그인
+  Future<UserCredential?> signInWithEmailPassword(
+      String email, String password) async {
+    try {
+      return await _auth.signInWithEmailAndPassword(
+          email: email, password: password);
+    } catch (e) {
+      print('로그인 실패: $e');
+      return null;
+    }
+  }
+
+  // 사용자 로그아웃
+  Future<void> signOut() async {
+    await _auth.signOut();
+  }
+
+  // 현재 로그인한 사용자 정보 반환
+  User? get currentUser {
+    return _auth.currentUser;
   }
 }
