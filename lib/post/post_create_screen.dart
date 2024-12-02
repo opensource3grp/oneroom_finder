@@ -1,4 +1,4 @@
-import 'dart:typed_data';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart'; // 이미지 선택
 //import 'dart:io'; // 이미지 파일 관련
@@ -22,7 +22,7 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
   String? title; // 타입 선택을 위한 변수
   String? type; // 거래 유형 선택을 위한 변수
   final List<String> tags = ['삽니다', '팝니다'];
-  Uint8List? selectedImage; // 선택된 이미지 파일
+  File? selectedImage; // 선택된 이미지 파일
 
   final ImagePicker _picker = ImagePicker();
   String? nickname; // 로그인한 사용자의 닉네임
@@ -207,10 +207,15 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
                             child: SizedBox(
                               width: 150, // 이미지의 너비
                               height: 150, // 이미지의 높이
-                              child: Image.memory(
-                                selectedImage!,
-                                fit: BoxFit.cover, // 이미지가 공간을 꽉 채우도록 설정
-                              ),
+                              child: selectedImage != null
+                                  ? FittedBox(
+                                      fit: BoxFit.cover,
+                                      child: Image.file(
+                                        selectedImage!, // File 타입 이미지를 Image 위젯으로 변환
+                                        fit: BoxFit.cover, // 이미지가 공간을 꽉 채우도록 설정
+                                      ),
+                                    )
+                                  : const Placeholder(),
                             ),
                           ),
                         ),
@@ -269,7 +274,7 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
       if (pickedFile != null) {
         final bytes = await pickedFile.readAsBytes();
         setState(() {
-          selectedImage = bytes;
+          selectedImage = pickedFile != null ? File(pickedFile.path) : null;
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
