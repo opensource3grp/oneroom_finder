@@ -19,9 +19,32 @@ class RoomDetailsScreen extends StatelessWidget {
         .snapshots();
   }
 
+  // 사용자 정보를 Firestore에서 가져오는 메서드
+  Future<Map<String, dynamic>?> fetchUserDetails(String userId) async {
+    if (userId.isEmpty) {
+      print('No author ID provided');
+      return null; // 또는 적절한 기본값을 반환
+    }
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+      if (userDoc.exists) {
+        return userDoc.data();
+      } else {
+        print('User document does not exist for userId: $userId');
+        return null;
+      }
+    } catch (e) {
+      print("Error fetching user details: $e");
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
+    final userId = FirebaseAuth.instance.currentUser?.uid; //사용자 uid 생성
     return Scaffold(
       appBar: AppBar(
         title: const Text('원룸 상세 정보'),
@@ -236,101 +259,142 @@ class RoomDetailsScreen extends StatelessWidget {
           final String tag = post['tag'] ?? '태그 없음';
           final String title = post['title'] ?? '제목 없음';
           final String content = post['content'] ?? '내용 없음';
-          final String author = post['author'] ?? '익명';
+          final String authorId = post['authorId'] ?? ''; // 작성자 ID
           final int likes = post['likes'] ?? 0;
           final int comment = post['review'] ?? 0;
           //final int reviewsCount = post['reviewsCount'] ?? 0; // 후기 개수
           final String? imageUrl = post['image'];
+          final String location = post['location'] ?? '위치 정보 없음'; // 위치 정보 기본값
 
-          return SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (imageUrl != null)
-                    Image.network(
-                      imageUrl,
-                      width: double.infinity,
-                      height: 200,
-                      fit: BoxFit.cover,
-                    ),
-                  const SizedBox(height: 16),
-                  Text(
-                    tag,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.blue,
-                    ),
-                  ),
-                  const SizedBox(height: 8.0),
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8.0),
-                  Text(
-                    '작성자: $author',
-                    style: const TextStyle(fontSize: 16, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    content,
-                    style: const TextStyle(fontSize: 18),
-                  ),
-                  const SizedBox(height: 16.0),
-                  Row(
+// 여기서 authorId 값을 출력
+          print('Author ID: $authorId'); // 추가한 부분
+
+          return FutureBuilder<Map<String, dynamic>?>(
+            future: fetchUserDetails(authorId),
+            builder: (context, userSnapshot) {
+              if (userSnapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (userSnapshot.hasError || !userSnapshot.hasData) {
+                return const Center(child: Text('사용자 정보를 가져오는데 실패했습니다.'));
+              }
+
+              final userData = userSnapshot.data!;
+              final String nickname = userData['nickname'] ?? '닉네임 없음';
+              final String job = userData['job'] ?? '직업 없음';
+              final String author = '$nickname($job)';
+
+              return SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      GestureDetector(
-                        onTap: () async {
-                          if (userId != null) {
-                            try {
-                              await postService.toggleLike(
-                                  postId, userId, context);
-                            } catch (e) {
-                              postService.showErrorDialog(
-                                  context, e.toString());
-                            }
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('좋아요는 로그인 후 이용 가능합니다.')),
-                            );
-                          }
-                        },
-                        child: const Icon(Icons.thumb_up, color: Colors.orange),
+                      // 게시물 이미지
+                      if (imageUrl != null)
+                        Image.network(imageUrl,
+                            width: double.infinity,
+                            height: 200,
+                            fit: BoxFit.cover)
+                      else
+                        const Placeholder(
+                            fallbackHeight: 200,
+                            fallbackWidth: double.infinity),
+                      const SizedBox(height: 16),
+                      // 태그와 작성자
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            tag,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.blue,
+                            ),
+                          ),
+                          Text(
+                            '작성자: $author',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8.0),
-                      Text('$likes명이 좋아합니다.'),
+                      const SizedBox(height: 8),
+                      // 위치 정보
+                      Text(
+                        location,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      // 제목
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // 내용
+                      Text(
+                        content,
+                        style: const TextStyle(fontSize: 18),
+                      ),
+                      const SizedBox(height: 24),
+                      const Divider(),
+                      // 좋아요와 후기
+                      Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () async {
+                              if (userId != null) {
+                                try {
+                                  await postService.toggleLike(
+                                      postId, userId, context);
+                                } catch (e) {
+                                  postService.showErrorDialog(
+                                      context, e.toString());
+                                }
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content: Text('좋아요는 로그인 후 이용 가능합니다.')),
+                                );
+                              }
+                            },
+                            child: const Icon(Icons.thumb_up,
+                                color: Colors.orange),
+                          ),
+                          const SizedBox(width: 8),
+                          Text('$likes명이 좋아합니다.'),
+                          const Spacer(),
+                          const Icon(Icons.comment, color: Colors.orange),
+                          const SizedBox(width: 8),
+                          Text('$comment개의 후기'),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      const Divider(),
+                      // 후기 입력란
+                      const Text(
+                        '후기 입력',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      CommentInputField(postId: postId),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      const Icon(Icons.comment, color: Colors.orange),
-                      const SizedBox(width: 8.0),
-                      Text('$comment개의 후기'),
-                    ],
-                  ),
-                  const SizedBox(height: 24.0),
-                  const Divider(),
-                  const Text(
-                    '댓글',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8.0),
-
-                  // 댓글 입력 필드
-                  CommentInputField(postId: postId),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           );
         },
       ),

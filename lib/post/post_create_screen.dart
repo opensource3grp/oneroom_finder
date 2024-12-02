@@ -1,8 +1,10 @@
-import 'dart:typed_data';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart'; // 이미지 선택
 //import 'dart:io'; // 이미지 파일 관련
 import 'post_service.dart'; // PostService import
+import 'package:firebase_auth/firebase_auth.dart'; // FirebaseAuth import
+import 'package:cloud_firestore/cloud_firestore.dart'; // FirebaseFirestore import
 
 class PostCreateScreen extends StatefulWidget {
   final PostService postService;
@@ -20,9 +22,50 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
   String? title; // 타입 선택을 위한 변수
   String? type; // 거래 유형 선택을 위한 변수
   final List<String> tags = ['삽니다', '팝니다'];
-  Uint8List? selectedImage; // 선택된 이미지 파일
+  File? selectedImage; // 선택된 이미지 파일
 
   final ImagePicker _picker = ImagePicker();
+  String? nickname; // 로그인한 사용자의 닉네임
+  String? job; // 로그인한 사용자의 직업
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserInfo();
+  }
+
+  // 로그인한 사용자의 정보를 Firestore에서 가져오는 함수
+  Future<void> _loadUserInfo() async {
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId != null) {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .get();
+        if (userDoc.exists) {
+          setState(() {
+            nickname = userDoc['nickname'] ?? '알 수 없음';
+            job = userDoc['job'] ?? '직업 없음';
+          });
+        } else {
+          // 문서가 존재하지 않을 경우
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('사용자 정보를 찾을 수 없습니다.')),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('사용자가 로그인하지 않았습니다.')),
+        );
+      }
+    } catch (e) {
+      // 예외 발생 시 오류 메시지 출력
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('회원 정보를 불러오는 중 오류가 발생했습니다: $e')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -118,6 +161,21 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
               ),
               const SizedBox(height: 16),
 
+              // 닉네임과 직업 자동 표시
+              if (nickname != null && job != null) ...[
+                Text(
+                  '작성자: $nickname',
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  '직업: $job',
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ],
+              const SizedBox(height: 16),
+
               // 이미지 선택 버튼
               Row(
                 children: [
@@ -149,10 +207,15 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
                             child: SizedBox(
                               width: 150, // 이미지의 너비
                               height: 150, // 이미지의 높이
-                              child: Image.memory(
-                                selectedImage!,
-                                fit: BoxFit.cover, // 이미지가 공간을 꽉 채우도록 설정
-                              ),
+                              child: selectedImage != null
+                                  ? FittedBox(
+                                      fit: BoxFit.cover,
+                                      child: Image.file(
+                                        selectedImage!, // File 타입 이미지를 Image 위젯으로 변환
+                                        fit: BoxFit.cover, // 이미지가 공간을 꽉 채우도록 설정
+                                      ),
+                                    )
+                                  : const Placeholder(),
                             ),
                           ),
                         ),
@@ -175,6 +238,20 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
                       roomType: title, // 타입 선택 전달
                     );
 
+                    // 게시글 작성 시 자동으로 작성자 정보와 게시물 정보 저장
+                    final userId = FirebaseAuth.instance.currentUser?.uid;
+                    if (userId != null) {
+                      final userData = {
+                        'nickname': nickname ?? '알 수 없음',
+                        'job': job ?? '직업 없음',
+                      };
+                      await FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(userId)
+                          .set(userData, SetOptions(merge: true)); // 기존 데이터와 병합
+                    }
+
+                    // ignore: use_build_context_synchronously
                     Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(
@@ -197,7 +274,7 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
       if (pickedFile != null) {
         final bytes = await pickedFile.readAsBytes();
         setState(() {
-          selectedImage = bytes;
+          selectedImage = pickedFile != null ? File(pickedFile.path) : null;
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
