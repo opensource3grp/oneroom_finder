@@ -10,9 +10,10 @@ class PostCard extends StatefulWidget {
   final String price;
   final String author;
   final String image;
-  final int reviewsCount;
+  final int review;
   final String postId;
   final String tag;
+  final int likes; // 좋아요 수 추가
 
   const PostCard({
     super.key,
@@ -23,12 +24,14 @@ class PostCard extends StatefulWidget {
     required this.price,
     required this.author,
     required this.image,
-    required this.reviewsCount,
+    required this.review,
     required this.postId,
     required this.tag,
+    required this.likes, // 좋아요 수 추가
   });
 
   @override
+  // ignore: library_private_types_in_public_api
   _PostCardState createState() => _PostCardState();
 }
 
@@ -130,7 +133,11 @@ class _PostCardState extends State<PostCard> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '후기 ${widget.reviewsCount}개',
+                  '후기 ${widget.review}개',
+                  style: const TextStyle(color: Colors.grey),
+                ),
+                Text(
+                  '좋아요 ${widget.likes}개', // 좋아요 수 표시
                   style: const TextStyle(color: Colors.grey),
                 ),
                 IconButton(

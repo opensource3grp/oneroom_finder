@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'comment.dart';
 import 'post_service.dart';
+//import 'package:intl/intl.dart';
 
 class RoomDetailsScreen extends StatelessWidget {
   final String postId;
@@ -39,6 +40,22 @@ class RoomDetailsScreen extends StatelessWidget {
     } catch (e) {
       print("Error fetching user details: $e");
       return null;
+    }
+  }
+
+  // 상대적 시간 포맷
+  String formatRelativeTime(DateTime createdAt) {
+    final now = DateTime.now();
+    final difference = now.difference(createdAt);
+
+    if (difference.inDays >= 1) {
+      return '${difference.inDays}일 전';
+    } else if (difference.inHours >= 1) {
+      return '${difference.inHours}시간 전';
+    } else if (difference.inMinutes >= 1) {
+      return '${difference.inMinutes}분 전';
+    } else {
+      return '방금 전';
     }
   }
 
@@ -260,13 +277,17 @@ class RoomDetailsScreen extends StatelessWidget {
           final String title = post['title'] ?? '제목 없음';
           final String content = post['content'] ?? '내용 없음';
           final String authorId = post['authorId'] ?? ''; // 작성자 ID
+          final Timestamp? createdAtTimestamp = post['createdAt']; //null 가능성
+          final DateTime createdAt = createdAtTimestamp?.toDate() ??
+              DateTime.now(); // null일 경우 현재 시간으로 대체
+          final String relativeTime = formatRelativeTime(createdAt);
           final int likes = post['likes'] ?? 0;
           final int comment = post['review'] ?? 0;
           //final int reviewsCount = post['reviewsCount'] ?? 0; // 후기 개수
           final String? imageUrl = post['image'];
           final String location = post['location'] ?? '위치 정보 없음'; // 위치 정보 기본값
 
-// 여기서 authorId 값을 출력
+          // 여기서 authorId 값을 출력
           print('Author ID: $authorId'); // 추가한 부분
 
           return FutureBuilder<Map<String, dynamic>?>(
@@ -309,16 +330,22 @@ class RoomDetailsScreen extends StatelessWidget {
                           Text(
                             tag,
                             style: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.blue,
-                            ),
+                                fontSize: 16, color: Colors.blue),
                           ),
-                          Text(
-                            '작성자: $author',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey,
-                            ),
+                          Row(
+                            children: [
+                              Text(
+                                '작성자: $author',
+                                style: const TextStyle(
+                                    fontSize: 16, color: Colors.grey),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                relativeTime,
+                                style: const TextStyle(
+                                    fontSize: 14, color: Colors.grey),
+                              ),
+                            ],
                           ),
                         ],
                       ),
