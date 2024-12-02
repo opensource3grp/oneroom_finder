@@ -21,6 +21,7 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
   String selectedTag = '삽니다';
   String? title; // 타입 선택을 위한 변수
   String? type; // 거래 유형 선택을 위한 변수
+  String? roomLocation;
   final List<String> tags = ['삽니다', '팝니다'];
   File? selectedImage; // 선택된 이미지 파일
 
@@ -142,6 +143,26 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
                 },
               ),
               const SizedBox(height: 16),
+              // 위치 선택
+              DropdownButtonFormField<String>(
+                decoration: const InputDecoration(
+                  labelText: '타입 선택',
+                  border: OutlineInputBorder(),
+                ),
+                value: roomLocation,
+                items: ['옥계', '신평', '학교 앞']
+                    .map((item) => DropdownMenuItem(
+                          value: item,
+                          child: Text(item),
+                        ))
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    roomLocation = value;
+                  });
+                },
+              ),
+              const SizedBox(height: 10),
 
               TextField(
                 controller: _titleController,
@@ -160,7 +181,7 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
                 maxLines: 5,
               ),
               const SizedBox(height: 16),
-
+              /*
               // 닉네임과 직업 자동 표시
               if (nickname != null && job != null) ...[
                 Text(
@@ -175,7 +196,7 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
                 ),
               ],
               const SizedBox(height: 16),
-
+              */
               // 이미지 선택 버튼
               Row(
                 children: [
@@ -236,8 +257,9 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
                       image: selectedImage, // 이미지 전달
                       type: type, // 거래 유형 전달
                       roomType: title, // 타입 선택 전달
+                      location: roomLocation, //위치 전달
                     );
-
+                    /*
                     // 게시글 작성 시 자동으로 작성자 정보와 게시물 정보 저장
                     final userId = FirebaseAuth.instance.currentUser?.uid;
                     if (userId != null) {
@@ -250,7 +272,7 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
                           .doc(userId)
                           .set(userData, SetOptions(merge: true)); // 기존 데이터와 병합
                     }
-
+                    */
                     // ignore: use_build_context_synchronously
                     Navigator.pop(context);
                   },

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:oneroom_finder/post/post_create_screen.dart';
+import 'package:oneroom_finder/signup_screen.dart';
 import 'post/post_service.dart';
 import 'post/post_list_screen.dart';
 import 'post/post_card.dart';
@@ -56,6 +57,21 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // 로그아웃 기능
+  void _logout() async {
+    try {
+      await FirebaseAuth.instance.signOut();
+      // Redirect to the login/signup screen
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginSignupScreen()),
+      );
+    } catch (e) {
+      // Handle logout error if needed
+      print("Logout failed: $e");
+    }
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -91,9 +107,24 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.notifications, color: Colors.black),
             onPressed: () {},
           ),
-          IconButton(
-            icon: const Icon(Icons.menu, color: Colors.black),
-            onPressed: () {},
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'logout') {
+                _logout();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem<String>(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.exit_to_app, color: Colors.black),
+                    SizedBox(width: 8),
+                    Text("로그아웃"),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
