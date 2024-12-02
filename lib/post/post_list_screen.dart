@@ -26,7 +26,7 @@ class _PostListScreenState extends State<PostListScreen> {
       case '최신순':
         _postStream = _firestore
             .collection('posts')
-            .orderBy('createdAt', descending: true) // Sort by creation date
+            .orderBy('createAt', descending: true) // Sort by creation date
             .snapshots();
         break;
       case '인기순':
@@ -100,13 +100,13 @@ class _PostListScreenState extends State<PostListScreen> {
 
           if (_selectedSort == '후기많은순') {
             // 후기 개수를 가져와서 내림차순 정렬
+            // 모든 게시물에 대해 후기 수를 미리 계산하고 likesCount와 reviewsCount를 함께 전달
             return FutureBuilder<List<Map<String, dynamic>>>(
               future: _getPostsWithReviewCounts(posts),
               builder: (context, futureSnapshot) {
                 if (futureSnapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
-
                 final sortedPosts = futureSnapshot.data ?? [];
 
                 return ListView.builder(
@@ -123,7 +123,8 @@ class _PostListScreenState extends State<PostListScreen> {
                       price: post['price'] ?? '가격 정보 없음',
                       author: post['author'] ?? '작성자 없음',
                       image: post['image'] ?? '',
-                      reviewsCount: post['reviewsCount'],
+                      review: post['review'] ?? 0,
+                      likes: post['likes'] ?? 0, // 좋아요 수 추가
                       postId: post['postDoc'].id,
                     );
                   },
@@ -137,7 +138,7 @@ class _PostListScreenState extends State<PostListScreen> {
               itemCount: posts.length,
               itemBuilder: (context, index) {
                 final postData = posts[index].data() as Map<String, dynamic>;
-
+                print('Likes Count for Post: ${postData['likes']}');
                 return PostCard(
                   tag: postData['tag'] ?? '',
                   post: posts[index],
@@ -147,7 +148,8 @@ class _PostListScreenState extends State<PostListScreen> {
                   price: postData['price'] ?? '가격 정보 없음',
                   author: postData['author'] ?? '작성자 없음',
                   image: postData['image'] ?? '',
-                  reviewsCount: postData['reviewsCount'] ?? 0,
+                  review: postData['review'] ?? 0,
+                  likes: postData['likes'] ?? 0, // 좋아요 수 추가
                   postId: posts[index].id,
                 );
               },
@@ -166,7 +168,7 @@ class _PostListScreenState extends State<PostListScreen> {
       final postData = post.data() as Map<String, dynamic>;
       final commentsSnapshot =
           await _firestore.collection('posts/${post.id}/comments').get();
-      final reviewsCount = commentsSnapshot.docs.length;
+      final review = commentsSnapshot.docs.length;
 
       postsWithCounts.add({
         'postDoc': post,
@@ -177,13 +179,33 @@ class _PostListScreenState extends State<PostListScreen> {
         'author': postData['author'],
         'image': postData['image'],
         'tag': postData['tag'],
-        'reviewsCount': reviewsCount,
+        'review': review,
+        //'reviewsCount': postData[reviewsCount] ?? 0,
+        'likes': postData['likes'] ?? 0,
+        'createAt': postData['createAt'],
       });
     }
 
-    postsWithCounts
-        .sort((a, b) => b['reviewsCount'].compareTo(a['reviewsCount']));
+    // 인기순 정렬 부분 수정
+    if (_selectedSort == '인기순') {
+      postsWithCounts.sort((a, b) {
+        print('Sorting: ${a['likes']} vs ${b['likes']}');
+        return (b['likes'] as int)
+            .compareTo(a['likes'] as int); // likes를 int로 캐스팅하여 비교
+      });
+    }
 
+    // 후기 많은 순, 최신순 등 나머지 정렬
+    if (_selectedSort == '최신순') {
+      postsWithCounts.sort((a, b) {
+        return b['createAt'].compareTo(a['createAt']); // 생성일자 기준 내림차순
+      });
+    } else if (_selectedSort == '후기많은순') {
+      postsWithCounts.sort((a, b) {
+        return b['review'].compareTo(a['review']); // 후기 수 기준 내림차순
+      });
+    }
+    print('Sorted Posts: ${postsWithCounts.map((e) => e['likes']).toList()}');
     return postsWithCounts;
   }
 }

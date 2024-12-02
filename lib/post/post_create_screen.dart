@@ -293,16 +293,23 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
   Future<void> _selectImage() async {
     try {
       final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-      if (pickedFile != null) {
-        final bytes = await pickedFile.readAsBytes();
-        setState(() {
-          selectedImage = pickedFile != null ? File(pickedFile.path) : null;
-        });
-      } else {
+
+      // 이미지가 선택되지 않은 경우
+      if (pickedFile == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('이미지를 선택하지 않았습니다.')),
         );
+        return; // 함수 종료
       }
+
+      // 이미지 선택 시, 파일을 읽어서 상태를 갱신합니다.
+      setState(() {
+        selectedImage = File(pickedFile.path); // 이미지를 선택한 후 상태 갱신
+      });
+
+      // 선택된 이미지로 작업을 추가적으로 할 경우 필요한 코드
+      final bytes = await pickedFile.readAsBytes();
+      print("선택한 이미지의 바이트 크기: ${bytes.length}"); // 디버깅용 출력
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('이미지 선택 중 오류가 발생했습니다: $e')),

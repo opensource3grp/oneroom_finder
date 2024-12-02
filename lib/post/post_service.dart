@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'dart:ui';
+//import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -84,11 +84,12 @@ class PostService {
         'review': 0,
         'userId': FirebaseAuth.instance.currentUser?.uid,
         'authorId': authorId, // authorId 추가
-        'createAt': FieldValue.serverTimestamp(),
+        'createdAt': FieldValue.serverTimestamp(),
         'imageUrl': imageUrl, // 이미지 URL 저장 (이미지가 없으면 null)
         'type': type, // 거래 유형 저장
         'roomType': roomType, // 타입 저장
         'location': location,
+        'createAt': Timestamp.now(), // createAt이 없으면 현재 시간으로 설정
       });
 
       // 성공적으로 게시글 작성 후 UI 알림
@@ -123,6 +124,8 @@ class PostService {
 
       final postData = postDoc.data() as Map<String, dynamic>;
       final authorId = postData['authorId']; // authorId 포함
+      final createAt = postData['createAt'] ??
+          Timestamp.now(); // Firestore에서 createAt 값 가져오기, 없으면 현재 시간 사용
 
       // 반환할 데이터에 authorId 포함
       return {
@@ -136,6 +139,7 @@ class PostService {
         'roomType': postData['roomType'],
         'createAt': postData['createAt'],
         'location': postData['location'],
+        'createAt': createAt, // createAt 필드 추가
       };
     } catch (e) {
       throw Exception('게시글 상세 조회 중 오류 발생: $e');

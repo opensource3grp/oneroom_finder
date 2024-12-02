@@ -8,7 +8,7 @@ import 'post/post_card.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'chat_room/chat_create.dart';
 import 'post/post_search.dart';
-// ignore: depend_on_referenced_packages
+import 'package:oneroom_finder/userinfo/maptap.dart';
 import 'package:intl/intl.dart';
 import 'dart:developer' as developer;
 import 'post/room_details_screen.dart';
@@ -33,6 +33,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final PostService postService = PostService();
+  final MapTab maptap = MapTab();
   int _selectedIndex = 0;
   //String searchQuery = '';
   late String uid;
@@ -227,6 +228,7 @@ class HomeTab extends StatelessWidget {
               final author = postData['author'] ?? '작성자 없음';
               final image = postData['image'] ?? ''; // Image URL or path
               final tag = postData['tag'] ?? ''; // 추가: tag 정보
+              final likes = postData['likes'] ?? 0; // likesCount 가져오기
 
               return StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
@@ -235,9 +237,9 @@ class HomeTab extends StatelessWidget {
                     .collection('comments')
                     .snapshots(), // comments 하위 컬렉션 스트림
                 builder: (context, commentSnapshot) {
-                  int reviewsCount = 0;
+                  int review = 0;
                   if (commentSnapshot.hasData) {
-                    reviewsCount = commentSnapshot.data!.docs.length; // 후기 개수
+                    review = commentSnapshot.data!.docs.length; // 후기 개수
                   }
                   return GestureDetector(
                     onTap: () {
@@ -259,7 +261,8 @@ class HomeTab extends StatelessWidget {
                       price: price,
                       author: author,
                       image: image,
-                      reviewsCount: reviewsCount,
+                      review: review,
+                      likes: likes,
                       postId: post.id,
                     ),
                   );
@@ -582,62 +585,6 @@ class ChatRoomScreen extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class MapTab extends StatelessWidget {
-  const MapTab({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(child: Text('지도 탭'));
-  }
-}
-
-class MyPageTab extends StatelessWidget {
-  const MyPageTab({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      children: [
-        const SizedBox(height: 20),
-        const CircleAvatar(
-          radius: 50,
-          backgroundColor: Colors.orange,
-          child: Icon(Icons.person, size: 50, color: Colors.white),
-        ),
-        const SizedBox(height: 20),
-        const Text(
-          '사용자 이름',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 30),
-        _buildMenuItem(context, '최근 본 방', Icons.history, () {
-          // 최근 본 방 화면으로 이동
-        }),
-        _buildMenuItem(context, '관심있는 방', Icons.favorite, () {
-          // 관심있는 방 화면으로 이동
-        }),
-        _buildMenuItem(context, '내 정보', Icons.person, () {
-          // 내 정보 화면으로 이동
-        }),
-        _buildMenuItem(context, '구매 내역', Icons.shopping_cart, () {
-          // 구매 내역 화면으로 이동
-        }),
-      ],
-    );
-  }
-
-  Widget _buildMenuItem(
-      BuildContext context, String title, IconData icon, VoidCallback onTap) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.orange),
-      title: Text(title),
-      trailing: const Icon(Icons.arrow_forward_ios),
-      onTap: onTap,
     );
   }
 }

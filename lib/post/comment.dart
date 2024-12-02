@@ -9,6 +9,7 @@ class CommentInputField extends StatefulWidget {
   const CommentInputField({super.key, required this.postId});
 
   @override
+  // ignore: library_private_types_in_public_api
   _CommentInputFieldState createState() => _CommentInputFieldState();
 }
 
@@ -45,10 +46,12 @@ class _CommentInputFieldState extends State<CommentInputField> {
       });
       await postService.incrementComments(widget.postId);
       _commentController.clear();
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('댓글이 추가되었습니다.')),
       );
     } catch (e) {
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('댓글 추가 중 오류 발생: $e')),
       );
@@ -73,10 +76,12 @@ class _CommentInputFieldState extends State<CommentInputField> {
 
       await commentRef.delete();
       await _updateCommentCount();
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('댓글이 삭제되었습니다.')),
       );
     } catch (e) {
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('댓글 삭제 중 오류 발생: $e')),
       );
@@ -97,10 +102,12 @@ class _CommentInputFieldState extends State<CommentInputField> {
           .doc(commentId);
 
       await commentRef.update({'content': newContent});
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('댓글이 수정되었습니다.')),
       );
     } catch (e) {
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('댓글 수정 중 오류 발생: $e')),
       );
@@ -119,6 +126,7 @@ class _CommentInputFieldState extends State<CommentInputField> {
       // 댓글 수를 업데이트합니다.
       await postRef.update({'review': commentCount});
     } catch (e) {
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('댓글 수 업데이트 중 오류 발생: $e')),
       );
