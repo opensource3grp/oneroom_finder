@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:oneroom_finder/auth_service.dart';
 
 class PostService {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
@@ -19,6 +20,7 @@ class PostService {
     File? image,
     String? type, // 거래 유형
     String? roomType, // 타입 선택 (원룸, 투룸, 쓰리룸)
+    String? location,
   }) async {
     if (roominfo.isEmpty || content.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -86,6 +88,7 @@ class PostService {
         'imageUrl': imageUrl, // 이미지 URL 저장 (이미지가 없으면 null)
         'type': type, // 거래 유형 저장
         'roomType': roomType, // 타입 저장
+        'location': location,
         'createAt': Timestamp.now(), // createAt이 없으면 현재 시간으로 설정
       });
 
@@ -134,6 +137,8 @@ class PostService {
         'image': postData['image'],
         'type': postData['type'],
         'roomType': postData['roomType'],
+        'createAt': postData['createAt'],
+        'location': postData['location'],
         'createAt': createAt, // createAt 필드 추가
       };
     } catch (e) {
@@ -143,7 +148,7 @@ class PostService {
 
   // 게시글 수정 기능
   Future<void> updatePost(String postId, String title, String content,
-      String? type, String? roomType, dynamic image) async {
+      String? type, String? roomType, dynamic image, String? location) async {
     try {
       DocumentReference postRef = firestore.collection('posts').doc(postId);
 
@@ -175,6 +180,7 @@ class PostService {
         'updateAt': FieldValue.serverTimestamp(),
         'type': type,
         'roomType': roomType,
+        'location': location,
       };
       if (imageUrl != null) {
         updateData['image'] = imageUrl; // 새 이미지 URL 추가
@@ -300,42 +306,5 @@ class PostService {
         );
       },
     );
-  }
-}
-
-class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-
-  // 로그인 여부 체크
-  Future<bool> isUserLoggedIn() async {
-    final currentUser = _auth.currentUser;
-    return currentUser != null;
-  }
-
-  // 로그인한 사용자 UID 반환
-  String? getUserId() {
-    return _auth.currentUser?.uid;
-  }
-
-  // 사용자 로그인
-  Future<UserCredential?> signInWithEmailPassword(
-      String email, String password) async {
-    try {
-      return await _auth.signInWithEmailAndPassword(
-          email: email, password: password);
-    } catch (e) {
-      print('로그인 실패: $e');
-      return null;
-    }
-  }
-
-  // 사용자 로그아웃
-  Future<void> signOut() async {
-    await _auth.signOut();
-  }
-
-  // 현재 로그인한 사용자 정보 반환
-  User? get currentUser {
-    return _auth.currentUser;
   }
 }

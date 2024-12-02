@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:oneroom_finder/post/post_create_screen.dart';
+import 'package:oneroom_finder/signup_screen.dart';
 import 'post/post_service.dart';
 import 'post/post_list_screen.dart';
 import 'post/post_card.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'chat_room/chat_create.dart';
 import 'post/post_search.dart';
-// ignore: depend_on_referenced_packages
+import 'package:oneroom_finder/userinfo/maptap.dart';
 import 'package:intl/intl.dart';
 import 'dart:developer' as developer;
 import 'post/room_details_screen.dart';
@@ -32,6 +33,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final PostService postService = PostService();
+  final MapTab maptap = MapTab();
   int _selectedIndex = 0;
   //String searchQuery = '';
   late String uid;
@@ -53,6 +55,21 @@ class _HomeScreenState extends State<HomeScreen> {
     } else {
       developer.log('No user is logged in.');
       // 로그인이 안된 경우 처리
+    }
+  }
+
+  // 로그아웃 기능
+  void _logout() async {
+    try {
+      await FirebaseAuth.instance.signOut();
+      // Redirect to the login/signup screen
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginSignupScreen()),
+      );
+    } catch (e) {
+      // Handle logout error if needed
+      print("Logout failed: $e");
     }
   }
 
@@ -91,9 +108,24 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.notifications, color: Colors.black),
             onPressed: () {},
           ),
-          IconButton(
-            icon: const Icon(Icons.menu, color: Colors.black),
-            onPressed: () {},
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'logout') {
+                _logout();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem<String>(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.exit_to_app, color: Colors.black),
+                    SizedBox(width: 8),
+                    Text("로그아웃"),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -553,62 +585,6 @@ class ChatRoomScreen extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class MapTab extends StatelessWidget {
-  const MapTab({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(child: Text('지도 탭'));
-  }
-}
-
-class MyPageTab extends StatelessWidget {
-  const MyPageTab({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      children: [
-        const SizedBox(height: 20),
-        const CircleAvatar(
-          radius: 50,
-          backgroundColor: Colors.orange,
-          child: Icon(Icons.person, size: 50, color: Colors.white),
-        ),
-        const SizedBox(height: 20),
-        const Text(
-          '사용자 이름',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 30),
-        _buildMenuItem(context, '최근 본 방', Icons.history, () {
-          // 최근 본 방 화면으로 이동
-        }),
-        _buildMenuItem(context, '관심있는 방', Icons.favorite, () {
-          // 관심있는 방 화면으로 이동
-        }),
-        _buildMenuItem(context, '내 정보', Icons.person, () {
-          // 내 정보 화면으로 이동
-        }),
-        _buildMenuItem(context, '구매 내역', Icons.shopping_cart, () {
-          // 구매 내역 화면으로 이동
-        }),
-      ],
-    );
-  }
-
-  Widget _buildMenuItem(
-      BuildContext context, String title, IconData icon, VoidCallback onTap) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.orange),
-      title: Text(title),
-      trailing: const Icon(Icons.arrow_forward_ios),
-      onTap: onTap,
     );
   }
 }

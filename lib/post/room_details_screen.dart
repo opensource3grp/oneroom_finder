@@ -96,6 +96,7 @@ class RoomDetailsScreen extends StatelessWidget {
 
                         String? type = post['type'] ?? '월세';
                         String? roomType = post['roomType'] ?? '원룸';
+                        String? location = post['location'] ?? '위치 정보 없음';
                         String? currentImageUrl = post['imageUrl'];
                         File? newImage;
 
@@ -198,6 +199,7 @@ class RoomDetailsScreen extends StatelessWidget {
                                         type,
                                         roomType,
                                         newImage,
+                                        location,
                                       );
                                       // ignore: use_build_context_synchronously
                                       ScaffoldMessenger.of(context)
@@ -312,17 +314,6 @@ class RoomDetailsScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 게시물 이미지
-                      if (imageUrl != null)
-                        Image.network(imageUrl,
-                            width: double.infinity,
-                            height: 200,
-                            fit: BoxFit.cover)
-                      else
-                        const Placeholder(
-                            fallbackHeight: 200,
-                            fallbackWidth: double.infinity),
-                      const SizedBox(height: 16),
                       // 태그와 작성자
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -366,6 +357,17 @@ class RoomDetailsScreen extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+                      const SizedBox(height: 16),
+                      // 게시물 이미지
+                      if (imageUrl != null)
+                        Image.network(imageUrl,
+                            width: double.infinity,
+                            height: 200,
+                            fit: BoxFit.cover)
+                      else
+                        const Placeholder(
+                            fallbackHeight: 200,
+                            fallbackWidth: double.infinity),
                       const SizedBox(height: 16),
                       // 내용
                       Text(
