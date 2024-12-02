@@ -196,6 +196,7 @@ class HomeTab extends StatelessWidget {
               final author = postData['author'] ?? '작성자 없음';
               final image = postData['image'] ?? ''; // Image URL or path
               final tag = postData['tag'] ?? ''; // 추가: tag 정보
+              final likes = postData['likes'] ?? 0; // likesCount 가져오기
 
               return StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
@@ -204,9 +205,9 @@ class HomeTab extends StatelessWidget {
                     .collection('comments')
                     .snapshots(), // comments 하위 컬렉션 스트림
                 builder: (context, commentSnapshot) {
-                  int reviewsCount = 0;
+                  int review = 0;
                   if (commentSnapshot.hasData) {
-                    reviewsCount = commentSnapshot.data!.docs.length; // 후기 개수
+                    review = commentSnapshot.data!.docs.length; // 후기 개수
                   }
                   return GestureDetector(
                     onTap: () {
@@ -228,7 +229,8 @@ class HomeTab extends StatelessWidget {
                       price: price,
                       author: author,
                       image: image,
-                      reviewsCount: reviewsCount,
+                      review: review,
+                      likes: likes,
                       postId: post.id,
                     ),
                   );
