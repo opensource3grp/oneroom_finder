@@ -5,7 +5,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:oneroom_finder/auth_service.dart';
+import 'package:oneroom_finder/post/room_details_screen.dart';
+import 'package:oneroom_finder/user_service/auth_service.dart';
+import 'package:oneroom_finder/userinfo/recentlyviewed.dart';
 
 class PostService {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
@@ -143,6 +145,34 @@ class PostService {
       };
     } catch (e) {
       throw Exception('게시글 상세 조회 중 오류 발생: $e');
+    }
+  }
+
+  Future<void> fetchAndNavigateToRoomDetails(
+      BuildContext context, String postId) async {
+    try {
+      // 게시글 데이터를 가져옴
+      final postDetails = await fetchPostDetails(postId);
+
+      if (postDetails == null) {
+        throw Exception('게시글 데이터를 불러오지 못했습니다.');
+      }
+
+      // 데이터를 가져온 후 RoomDetailsScreen으로 이동
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => RoomDetailsScreen(postId: postId),
+        ),
+      ).then((_) {
+        // 최근 본 게시글 업데이트
+        RecentlyViewedManager.addPost(postId);
+      });
+    } catch (e) {
+      // 오류 처리
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('게시글 상세 조회 중 오류 발생: $e')),
+      );
     }
   }
 

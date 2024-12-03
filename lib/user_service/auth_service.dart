@@ -1,4 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:oneroom_finder/user_service/signup_screen.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -7,6 +9,24 @@ class AuthService {
   Future<bool> isUserLoggedIn() async {
     final currentUser = _auth.currentUser;
     return currentUser != null;
+  }
+
+  static Future<void> logout(BuildContext context) async {
+    try {
+      await FirebaseAuth.instance.signOut();
+
+      // 로그인/회원가입 화면으로 이동
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginSignupScreen()),
+      );
+    } catch (e) {
+      print("Logout failed: $e");
+      // 로그아웃 실패 시 사용자에게 알림
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("로그아웃에 실패했습니다: $e")),
+      );
+    }
   }
 
   // 로그인한 사용자 UID 반환
@@ -24,11 +44,6 @@ class AuthService {
       print('로그인 실패: $e');
       return null;
     }
-  }
-
-  // 사용자 로그아웃
-  Future<void> signOut() async {
-    await _auth.signOut();
   }
 
   // 현재 로그인한 사용자 정보 반환

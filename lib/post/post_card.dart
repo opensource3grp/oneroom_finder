@@ -107,20 +107,13 @@ class _PostCardState extends State<PostCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${widget.location} | ${widget.price}',
+              widget.location,
               style: const TextStyle(
                 fontSize: 14,
                 color: Colors.black54,
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              '작성자: ${widget.author}',
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.orange,
-              ),
-            ),
             Text(
               widget.content,
               style: const TextStyle(
