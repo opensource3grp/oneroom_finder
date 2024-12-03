@@ -7,7 +7,6 @@ import 'package:cloud_firestore/cloud_firestore.dart'; // Firestore 추가
 
 class LoginSignupScreen extends StatefulWidget {
   const LoginSignupScreen({super.key});
-
   @override
   // ignore: library_private_types_in_public_api
   _LoginSignupScreenState createState() => _LoginSignupScreenState();

@@ -1,7 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:oneroom_finder/post/room_details_screen.dart';
+import 'package:oneroom_finder/userinfo/likepost.dart';
+import 'package:oneroom_finder/userinfo/mypage_screen.dart';
+import 'package:oneroom_finder/userinfo/recentview_post.dart';
+import 'package:oneroom_finder/userinfo/userpost.dart';
 
 // MapTab 클래스
 class MapTab extends StatelessWidget {
@@ -59,16 +62,30 @@ class MyPageTab extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             _buildMenuItem(context, '내 게시글', Icons.article, () {
-              _showUserPosts(context, userId!);
+              showDialog(
+                context: context,
+                builder: (context) => UserPostsDialog(userId: userId!),
+              );
             }),
             _buildMenuItem(context, '최근 본 방', Icons.history, () {
-              _showListDialog(context, '최근 본 방', user['recentRooms'] ?? []);
+              showDialog(
+                  context: context,
+                  builder: (context) => RecentPostsDialog(userId: userId!));
             }),
             _buildMenuItem(context, '관심있는 방', Icons.favorite, () {
-              _showListDialog(context, '관심있는 방', user['favoriteRooms'] ?? []);
+              showDialog(
+                context: context,
+                builder: (context) => LikePostDialog(userId: userId!),
+              );
             }),
             _buildMenuItem(context, '구매 내역', Icons.shopping_cart, () {
               _showListDialog(context, '구매 내역', user['purchaseHistory'] ?? []);
+            }),
+            _buildMenuItem(context, '마이페이지', Icons.person, () {
+              showDialog(
+                context: context,
+                builder: (context) => MyPageScreen(userId: userId!),
+              );
             }),
           ],
         );
@@ -98,168 +115,6 @@ class MyPageTab extends StatelessWidget {
               itemCount: items.length,
               itemBuilder: (context, index) {
                 return ListTile(title: Text(items[index]));
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('닫기'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // 사용자 게시글을 표시하는 다이얼로그
-  void _showUserPosts(BuildContext context, String userId) {
-    final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('내 게시글'),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: StreamBuilder<QuerySnapshot>(
-              stream: _firestore
-                  .collection('posts')
-                  .where('authorId', isEqualTo: userId) // authorId로 필터링
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(
-                    child: Text('게시글이 없습니다.'),
-                  );
-                }
-
-                final posts = snapshot.data!.docs;
-
-                return ListView.builder(
-                  itemCount: posts.length,
-                  itemBuilder: (context, index) {
-                    final postData =
-                        posts[index].data() as Map<String, dynamic>;
-                    final postId = posts[index].id;
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 8.0),
-                      elevation: 5,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(12.0),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  RoomDetailsScreen(postId: postId),
-                            ),
-                          );
-                        },
-                        leading: postData['imageUrl'] != null &&
-                                postData['imageUrl'].isNotEmpty
-                            ? Image.network(
-                                postData['imageUrl'],
-                                width: 100,
-                                height: 100,
-                                fit: BoxFit.cover,
-                              )
-                            : const SizedBox(
-                                width: 100,
-                                height: 100,
-                                child: Icon(Icons.image, color: Colors.grey),
-                              ),
-                        title: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (postData['tag'] != null &&
-                                postData['tag'].isNotEmpty)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8.0, vertical: 4.0),
-                                decoration: BoxDecoration(
-                                  color: Colors.orange.shade100,
-                                  borderRadius: BorderRadius.circular(12.0),
-                                ),
-                                child: Text(
-                                  postData['tag'],
-                                  style: const TextStyle(
-                                    color: Colors.orange,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            const SizedBox(height: 4),
-                            Text(
-                              postData['title'] ?? '제목 없음',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '${postData['location'] ?? '위치 없음'} | ${postData['price'] ?? '가격 없음'}',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.black54,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '작성자: ${postData['author'] ?? '작성자 없음'}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.orange,
-                              ),
-                            ),
-                            Text(
-                              postData['content'] ?? '내용 없음',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.black54,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  '후기 ${postData['review'] ?? 0}개',
-                                  style: const TextStyle(color: Colors.grey),
-                                ),
-                                Text(
-                                  '좋아요 ${postData['likes'] ?? 0}개',
-                                  style: const TextStyle(color: Colors.grey),
-                                ),
-                                IconButton(
-                                  icon: Icon(
-                                    Icons.favorite_border,
-                                    color: Colors.black,
-                                  ),
-                                  onPressed: () {
-                                    // 좋아요 버튼 클릭 동작 구현
-                                  },
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                );
               },
             ),
           ),
