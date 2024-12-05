@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:oneroom_finder/post/room_details_screen.dart';
 import 'package:oneroom_finder/user_service/auth_service.dart';
-import 'package:oneroom_finder/userinfo/recentlyviewed.dart';
 
 class PostService {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
@@ -109,10 +108,15 @@ class PostService {
 
   // 게시글 조회 기능
   Stream<QuerySnapshot> getPosts() {
-    return firestore
-        .collection('posts')
-        .orderBy('createAt', descending: true)
-        .snapshots();
+    try {
+      return firestore
+          .collection('posts')
+          .orderBy('createAt', descending: true)
+          .snapshots();
+    } catch (e) {
+      print('Firestore 데이터 스트림 오류: $e');
+      return const Stream.empty(); // 오류 발생 시 빈 스트림 반환
+    }
   }
 
   // 게시글 상세 조회 기능
@@ -164,10 +168,7 @@ class PostService {
         MaterialPageRoute(
           builder: (context) => RoomDetailsScreen(postId: postId),
         ),
-      ).then((_) {
-        // 최근 본 게시글 업데이트
-        RecentlyViewedManager.addPost(postId);
-      });
+      );
     } catch (e) {
       // 오류 처리
       ScaffoldMessenger.of(context).showSnackBar(
@@ -336,5 +337,17 @@ class PostService {
         );
       },
     );
+  }
+
+  // Firestore의 posts 컬렉션에서 특정 게시글의 상태를 변경하는 메서드
+  static Future<void> setStatus(String postId, String newStatus) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('posts')
+          .doc(postId)
+          .update({'status': newStatus});
+    } catch (e) {
+      throw Exception('게시글 상태 변경 중 오류 발생: $e');
+    }
   }
 }

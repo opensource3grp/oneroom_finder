@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:oneroom_finder/firebase_options.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'splash_screen.dart'; // 스플래시 화면 클래스 파일 가져오기
 
 void main() async {
@@ -8,6 +9,7 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  await SharedPreferences.getInstance();
   runApp(const MyApp());
 }
 

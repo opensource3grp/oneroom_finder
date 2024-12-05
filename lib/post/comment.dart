@@ -6,7 +6,10 @@ import 'package:oneroom_finder/post/post_service.dart';
 class CommentInputField extends StatefulWidget {
   final String postId;
 
-  const CommentInputField({super.key, required this.postId});
+  final bool isCommentAllowed;
+
+  const CommentInputField(
+      {super.key, required this.postId, required this.isCommentAllowed});
 
   @override
   // ignore: library_private_types_in_public_api
@@ -185,16 +188,24 @@ class _CommentInputFieldState extends State<CommentInputField> {
                     hintText: '댓글을 입력하세요...',
                     border: OutlineInputBorder(),
                   ),
+                  enabled: widget.isCommentAllowed,
                 ),
               ),
               IconButton(
-                onPressed: _addComment,
+                onPressed: widget.isCommentAllowed ? _addComment : null,
                 icon: const Icon(Icons.send, color: Colors.orange),
               ),
             ],
           ),
         ),
-
+        if (!widget.isCommentAllowed)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8.0),
+            child: Text(
+              '거래 완료 상태일 경우에만 후기를 남길 수 있습니다.',
+              style: TextStyle(color: Colors.red, fontSize: 14),
+            ),
+          ),
         // 댓글 리스트
         ConstrainedBox(
           constraints: const BoxConstraints(
@@ -219,9 +230,13 @@ class _CommentInputFieldState extends State<CommentInputField> {
               }
 
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return const Center(
-                  child: Text('아직 댓글이 없습니다. 첫 번째 댓글을 추가해보세요!'),
-                );
+                if (widget.isCommentAllowed) {
+                  return const Center(
+                    child: Text('아직 댓글이 없습니다. 첫 번째 댓글을 추가해보세요!'),
+                  );
+                } else {
+                  return const Center(child: SizedBox.shrink());
+                }
               }
 
               final comments = snapshot.data!.docs;

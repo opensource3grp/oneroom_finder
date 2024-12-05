@@ -4,7 +4,6 @@ import 'package:oneroom_finder/post/post_card.dart';
 import 'package:oneroom_finder/post/post_list_screen.dart';
 import 'package:oneroom_finder/post/post_service.dart';
 import 'package:oneroom_finder/post/room_details_screen.dart';
-import 'package:oneroom_finder/userinfo/recentlyviewed.dart';
 
 class HomeTab extends StatelessWidget {
   const HomeTab({super.key});
@@ -64,7 +63,7 @@ class HomeTab extends StatelessWidget {
               final image = postData['image'] ?? ''; // Image URL or path
               final tag = postData['tag'] ?? ''; // 추가: tag 정보
               final likes = postData['likes'] ?? 0; // likesCount 가져오기
-
+              final status = postData['status'] ?? '거래 가능';
               return StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection('posts')
@@ -77,9 +76,7 @@ class HomeTab extends StatelessWidget {
                     review = commentSnapshot.data!.docs.length; // 후기 개수
                   }
                   return GestureDetector(
-                    onTap: () {
-                      // 게시글 클릭 시 RoomDetailScreen으로 이동
-                      RecentlyViewedManager.addPost(post.id);
+                    onTap: () async {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -100,6 +97,7 @@ class HomeTab extends StatelessWidget {
                       review: review,
                       likes: likes,
                       postId: post.id,
+                      status: status,
                     ),
                   );
                 },
