@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:oneroom_finder/userinfo/recentlyviewed.dart';
 import 'room_details_screen.dart';
 
 class PostSearchDelegate extends SearchDelegate<String> {

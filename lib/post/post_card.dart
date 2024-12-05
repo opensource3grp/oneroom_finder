@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:oneroom_finder/post/post_service.dart';
 import 'room_details_screen.dart';
 
 class PostCard extends StatefulWidget {
@@ -13,7 +14,8 @@ class PostCard extends StatefulWidget {
   final int review;
   final String postId;
   final String tag;
-  final int likes; // 좋아요 수 추가
+  final int likes;
+  final String status;
 
   const PostCard({
     super.key,
@@ -27,7 +29,8 @@ class PostCard extends StatefulWidget {
     required this.review,
     required this.postId,
     required this.tag,
-    required this.likes, // 좋아요 수 추가
+    required this.likes,
+    required this.status,
   });
 
   @override
@@ -37,7 +40,6 @@ class PostCard extends StatefulWidget {
 
 class _PostCardState extends State<PostCard> {
   bool _isFavorite = false;
-
   void _toggleFavorite() {
     setState(() {
       _isFavorite = !_isFavorite;
@@ -119,6 +121,16 @@ class _PostCardState extends State<PostCard> {
               style: const TextStyle(
                 fontSize: 12,
                 color: Colors.black54,
+              ),
+            ),
+            const SizedBox(height: 8),
+            // 거래 상태 표시
+            Text(
+              '상태: ${widget.status == '거래 완료' ? '거래 완료' : widget.status}',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: widget.status == '거래 완료' ? Colors.red : Colors.green,
               ),
             ),
             const SizedBox(height: 8),

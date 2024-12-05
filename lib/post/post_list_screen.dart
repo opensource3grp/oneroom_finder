@@ -126,6 +126,7 @@ class _PostListScreenState extends State<PostListScreen> {
                       review: post['review'] ?? 0,
                       likes: post['likes'] ?? 0, // 좋아요 수 추가
                       postId: post['postDoc'].id,
+                      status: post['status'] ?? '거래 가능',
                     );
                   },
                 );
@@ -151,6 +152,7 @@ class _PostListScreenState extends State<PostListScreen> {
                   review: postData['review'] ?? 0,
                   likes: postData['likes'] ?? 0, // 좋아요 수 추가
                   postId: posts[index].id,
+                  status: postData['status'] ?? '거래 가능',
                 );
               },
             );
