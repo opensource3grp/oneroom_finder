@@ -74,12 +74,8 @@ class MyPageTab extends StatelessWidget {
                 builder: (context) => UserPostsDialog(userId: userId!),
               );
             }),
-            _buildMenuItem(context, '최근 본 방', Icons.history, () {
-              showDialog(
-                  context: context,
-                  builder: (context) => RecentPostsDialog(userId: userId!));
-            }),
-            _buildMenuItem(context, '관심있는 방', Icons.favorite, () {
+            _buildMenuItem(context, '관심있는 방', Icons.favorite, menuItemColor,
+                () {
               showDialog(
                 context: context,
                 builder: (context) => LikePostDialog(userId: userId!),
