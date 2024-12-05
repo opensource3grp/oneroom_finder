@@ -141,6 +141,7 @@ class PostService {
         'roomType': postData['roomType'],
         'createAt': postData['createAt'],
         'location': postData['location'],
+        // ignore: equal_keys_in_map
         'createAt': createAt, // createAt 필드 추가
       };
     } catch (e) {

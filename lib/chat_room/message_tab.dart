@@ -5,7 +5,8 @@ import 'package:oneroom_finder/chat_room/chat_create.dart';
 import 'package:oneroom_finder/chat_room/chatroom_screen.dart';
 
 class MessageTab extends StatefulWidget {
-  const MessageTab({super.key});
+  final String userJob;
+  const MessageTab({super.key, required this.userJob});
 
   @override
   // ignore: library_private_types_in_public_api
@@ -18,11 +19,16 @@ class _MessageTabState extends State<MessageTab> {
 
   @override
   Widget build(BuildContext context) {
+    Color primaryColor =
+        widget.userJob == '공인중개사' ? Colors.blue : Colors.orange;
+    Color avatarColor = primaryColor;
+    Color floatingButtonColor = primaryColor;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('메시지'),
         centerTitle: true,
-        backgroundColor: Colors.orange,
+        backgroundColor: primaryColor,
         actions: [
           if (!isEditing)
             IconButton(
@@ -116,7 +122,7 @@ class _MessageTabState extends State<MessageTab> {
                   ],
                 ),
                 leading: CircleAvatar(
-                  backgroundColor: Colors.orange,
+                  backgroundColor: avatarColor,
                   child: Text(
                     chatRoomName.isNotEmpty ? chatRoomName[0] : '?',
                     style: const TextStyle(color: Colors.white),
@@ -128,7 +134,7 @@ class _MessageTabState extends State<MessageTab> {
                             ? Icons.check_circle
                             : Icons.circle_outlined,
                         color: selectedChatRooms.contains(chatRoom.id)
-                            ? Colors.orange
+                            ? primaryColor
                             : Colors.grey,
                       )
                     : Column(
@@ -176,8 +182,8 @@ class _MessageTabState extends State<MessageTab> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                            ChatRoomScreen(chatRoomId: chatRoom.id),
+                        builder: (context) => ChatRoomScreen(
+                            chatRoomId: chatRoom.id, userJob: widget.userJob),
                       ),
                     );
                   }
@@ -194,7 +200,7 @@ class _MessageTabState extends State<MessageTab> {
             builder: (context) => const CreateChatRoomDialog(),
           );
         },
-        backgroundColor: Colors.orange,
+        backgroundColor: floatingButtonColor,
         child: const Icon(Icons.add),
       ),
     );
