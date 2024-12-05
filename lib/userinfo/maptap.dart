@@ -44,14 +44,22 @@ class MyPageTab extends StatelessWidget {
         }
         final user = snapshot.data!.data() as Map<String, dynamic>;
         final nickname = user['nickname'];
+        final job = user['job']; // 직업 정보 가져오기
+
+        // 직업에 따라 색상 변경
+        Color menuItemColor = job == '학생' ? Colors.orange : Colors.blue;
+        Color avatarBackgroundColor = job == '학생'
+            ? Colors.orange[200]!
+            : Colors.blue[200]!; // CircleAvatar 색상
+
         //final joinDate
         return ListView(
           children: [
             const SizedBox(height: 20),
-            const CircleAvatar(
+            CircleAvatar(
               radius: 50,
-              backgroundColor: Colors.orange,
-              child: Icon(Icons.person, size: 50, color: Colors.white),
+              backgroundColor: avatarBackgroundColor,
+              child: const Icon(Icons.person, size: 50, color: Colors.white),
             ),
             const SizedBox(height: 20),
             Text(
@@ -60,22 +68,24 @@ class MyPageTab extends StatelessWidget {
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
-            _buildMenuItem(context, '내 게시글', Icons.article, () {
+            _buildMenuItem(context, '내 게시글', Icons.article, menuItemColor, () {
               showDialog(
                 context: context,
                 builder: (context) => UserPostsDialog(userId: userId!),
               );
             }),
-            _buildMenuItem(context, '관심있는 방', Icons.favorite, () {
+            _buildMenuItem(context, '관심있는 방', Icons.favorite, menuItemColor,
+                () {
               showDialog(
                 context: context,
                 builder: (context) => LikePostDialog(userId: userId!),
               );
             }),
-            _buildMenuItem(context, '구매 내역', Icons.shopping_cart, () {
+            _buildMenuItem(context, '구매 내역', Icons.shopping_cart, menuItemColor,
+                () {
               _showListDialog(context, '구매 내역', user['purchaseHistory'] ?? []);
             }),
-            _buildMenuItem(context, '마이페이지', Icons.person, () {
+            _buildMenuItem(context, '마이페이지', Icons.person, menuItemColor, () {
               showDialog(
                 context: context,
                 builder: (context) => MyPageScreen(userId: userId!),
@@ -87,11 +97,11 @@ class MyPageTab extends StatelessWidget {
     );
   }
 
-  Widget _buildMenuItem(
-      BuildContext context, String title, IconData icon, VoidCallback onTap) {
+  Widget _buildMenuItem(BuildContext context, String title, IconData icon,
+      Color color, VoidCallback onTap) {
     return ListTile(
-      leading: Icon(icon, color: Colors.orange),
-      title: Text(title),
+      leading: Icon(icon, color: color), // 아이콘 색상 변경
+      title: Text(title, style: TextStyle(color: color)), // 텍스트 색상 변경
       trailing: const Icon(Icons.arrow_forward_ios),
       onTap: onTap,
     );

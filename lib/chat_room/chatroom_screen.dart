@@ -4,17 +4,20 @@ import 'package:flutter/material.dart';
 
 class ChatRoomScreen extends StatelessWidget {
   final String chatRoomId;
+  final String userJob; // 직업을 전달받는 변수 추가
 
-  const ChatRoomScreen({super.key, required this.chatRoomId});
+  const ChatRoomScreen(
+      {super.key, required this.chatRoomId, required this.userJob});
 
   @override
   Widget build(BuildContext context) {
     final TextEditingController messageController = TextEditingController();
-
+// 직업에 따른 배경색 설정
+    Color messageColor = userJob == '학생' ? Colors.orange : Colors.blue;
     return Scaffold(
       appBar: AppBar(
         title: const Text('채팅방'),
-        backgroundColor: Colors.orange,
+        backgroundColor: messageColor,
       ),
       body: Column(
         children: [
@@ -52,6 +55,12 @@ class ChatRoomScreen extends StatelessWidget {
                     final text = messageData['text'] ?? '';
                     final isMe = sender ==
                         FirebaseAuth.instance.currentUser?.displayName;
+
+                    // 메시지의 배경 색상을 직업에 맞게 변경
+                    Color messageBackgroundColor = isMe
+                        ? messageColor // 내 메시지는 직업에 맞는 색
+                        : Colors.grey[300]!; // 상대방 메시지 배경은 기본 색
+
                     return Align(
                       alignment:
                           isMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -61,7 +70,7 @@ class ChatRoomScreen extends StatelessWidget {
                         margin: const EdgeInsets.symmetric(
                             vertical: 5, horizontal: 10),
                         decoration: BoxDecoration(
-                          color: isMe ? Colors.orange : Colors.grey[300],
+                          color: messageBackgroundColor,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(

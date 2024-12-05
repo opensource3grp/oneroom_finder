@@ -29,6 +29,9 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
   String? nickname; // 로그인한 사용자의 닉네임
   String? job; // 로그인한 사용자의 직업
 
+  Color? buttonColor; // 직업에 따른 버튼 색상 변수
+  Color? backgroundColor; // 직업에 따른 배경색 변수
+
   @override
   void initState() {
     super.initState();
@@ -48,6 +51,17 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
           setState(() {
             nickname = userDoc['nickname'] ?? '알 수 없음';
             job = userDoc['job'] ?? '직업 없음';
+            // 직업에 따른 색상 설정
+            if (job == '학생') {
+              buttonColor = Colors.orange; // 주황색
+              backgroundColor = Colors.orange[200]!; // 배경 주황색
+            } else if (job == '공인중개사') {
+              buttonColor = Colors.blue; // 파란색
+              backgroundColor = Colors.blue[200]!; // 배경 파란색
+            } else {
+              buttonColor = Colors.grey; // 기본 색상
+              backgroundColor = Colors.grey[200]!; // 기본 배경색
+            }
           });
         } else {
           // 문서가 존재하지 않을 경우
@@ -73,7 +87,7 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('게시글 작성'),
-        backgroundColor: Colors.orange,
+        backgroundColor: backgroundColor, // 직업에 맞는 배경 색상
       ),
       body: SingleChildScrollView(
         // Wrap the Column with SingleChildScrollView
@@ -181,29 +195,14 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
                 maxLines: 5,
               ),
               const SizedBox(height: 16),
-              /*
-              // 닉네임과 직업 자동 표시
-              if (nickname != null && job != null) ...[
-                Text(
-                  '작성자: $nickname',
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  '직업: $job',
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ],
-              const SizedBox(height: 16),
-              */
+
               // 이미지 선택 버튼
               Row(
                 children: [
                   ElevatedButton(
                     onPressed: _selectImage,
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange),
+                    style:
+                        ElevatedButton.styleFrom(backgroundColor: buttonColor),
                     child: const Text('이미지 선택'),
                   ),
                   if (selectedImage != null)
@@ -259,25 +258,12 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
                       roomType: title, // 타입 선택 전달
                       location: roomLocation, //위치 전달
                     );
-                    /*
-                    // 게시글 작성 시 자동으로 작성자 정보와 게시물 정보 저장
-                    final userId = FirebaseAuth.instance.currentUser?.uid;
-                    if (userId != null) {
-                      final userData = {
-                        'nickname': nickname ?? '알 수 없음',
-                        'job': job ?? '직업 없음',
-                      };
-                      await FirebaseFirestore.instance
-                          .collection('users')
-                          .doc(userId)
-                          .set(userData, SetOptions(merge: true)); // 기존 데이터와 병합
-                    }
-                    */
+
                     // ignore: use_build_context_synchronously
                     Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
+                    backgroundColor: buttonColor,
                   ),
                   child: const Text('작성하기'),
                 ),

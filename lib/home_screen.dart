@@ -62,15 +62,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // uid를 로그에 출력하거나 다른 곳에서 사용 가능
-    developer.log('UID is being used in HomeScreen: $uid');
+    // 직업에 따라 색상 지정
+    Color appBarTextColor =
+        widget.job == '학생' ? Colors.orange : Colors.blue; // 글자 색상
+    Color selectedItemColor = widget.job == '학생' ? Colors.orange : Colors.blue;
+    Color floatingActionButtonColor =
+        widget.job == '학생' ? Colors.orange : Colors.blue;
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        title: const Text(
+        backgroundColor: Colors.white, // 직업에 따른 색상 변경
+        title: Text(
           '원룸 알리미',
-          style: TextStyle(color: Colors.orange),
+          style: TextStyle(color: appBarTextColor),
         ),
         centerTitle: true,
         elevation: 1,
@@ -113,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.orange,
+        selectedItemColor: selectedItemColor, // 직업에 따른 색상 변경
         unselectedItemColor: Colors.black54,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),
@@ -128,7 +132,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: _selectedIndex == 0
           ? HomeTab() // 홈 화면
           : _selectedIndex == 1
-              ? MessageTab() // 메시지 탭
+              ? MessageTab(userJob: widget.job) // 메시지 탭
               : _selectedIndex == 2
                   ? MapTab() // 지도 탭
                   : MyPageTab(), // 마이페이지 탭
@@ -144,7 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 );
               },
-              backgroundColor: Colors.orange,
+              backgroundColor: floatingActionButtonColor,
               child: const Icon(Icons.add),
             )
           : null, // 다른 탭에서는 플로팅 버튼 숨김
