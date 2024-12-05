@@ -18,11 +18,11 @@ class PostCreateScreen extends StatefulWidget {
 class _PostCreateScreenState extends State<PostCreateScreen> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
-  String selectedTag = '삽니다';
+  String selectedTag = '매매';
   String? title; // 타입 선택을 위한 변수
   String? type; // 거래 유형 선택을 위한 변수
   String? roomLocation;
-  final List<String> tags = ['삽니다', '팝니다'];
+  final List<String> tags = ['양도', '매매'];
   File? selectedImage; // 선택된 이미지 파일
 
   final ImagePicker _picker = ImagePicker();

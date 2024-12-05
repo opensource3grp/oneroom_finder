@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:oneroom_finder/userinfo/likepost.dart';
 import 'package:oneroom_finder/userinfo/mypage_screen.dart';
-import 'package:oneroom_finder/userinfo/recentview_post.dart';
 import 'package:oneroom_finder/userinfo/userpost.dart';
 
 // MapTab 클래스
@@ -75,13 +74,12 @@ class MyPageTab extends StatelessWidget {
                 builder: (context) => UserPostsDialog(userId: userId!),
               );
             }),
-            _buildMenuItem(context, '최근 본 방', Icons.history, menuItemColor, () {
+            _buildMenuItem(context, '최근 본 방', Icons.history, () {
               showDialog(
                   context: context,
                   builder: (context) => RecentPostsDialog(userId: userId!));
             }),
-            _buildMenuItem(context, '관심있는 방', Icons.favorite, menuItemColor,
-                () {
+            _buildMenuItem(context, '관심있는 방', Icons.favorite, () {
               showDialog(
                 context: context,
                 builder: (context) => LikePostDialog(userId: userId!),

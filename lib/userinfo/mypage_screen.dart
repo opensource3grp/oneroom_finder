@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 //import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-//import 'package:oneroom_finder/home_screen.dart';
+import 'package:oneroom_finder/home_screen.dart';
 import 'package:oneroom_finder/user_service/auth_service.dart';
-//import 'package:oneroom_finder/user_service/signup_screen.dart';
+import 'package:oneroom_finder/user_service/signup_screen.dart';
 
 class MyPageScreen extends StatefulWidget {
   final String userId;
