@@ -1,9 +1,9 @@
 // signup_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:oneroom_finder/home_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Firebase Auth 추가
 import 'package:cloud_firestore/cloud_firestore.dart'; // Firestore 추가
+import 'package:oneroom_finder/user_service/welcome_splash_screen.dart';
 
 class LoginSignupScreen extends StatefulWidget {
   const LoginSignupScreen({super.key});
@@ -47,7 +47,7 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => HomeScreen(
+          builder: (context) => WelcomeSplashScreen(
             uid: user.uid,
             nickname: nickname,
             job: job,
@@ -165,7 +165,7 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => HomeScreen(
+            builder: (context) => WelcomeSplashScreen(
               uid: userId,
               nickname: nickname,
               job: job,
@@ -223,7 +223,7 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => HomeScreen(
+            builder: (context) => WelcomeSplashScreen(
               uid: userId,
               nickname: nicknameController.text.trim(),
               job: selectedJob ?? '직업 없음',

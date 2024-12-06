@@ -12,6 +12,7 @@ class MyPageScreen extends StatefulWidget {
 class _MyPageScreenState extends State<MyPageScreen> {
   String? _nickname; // 닉네임 저장 변수
   bool _isLoading = true; // 데이터 로딩 상태
+  late String _job; // 직업 저장 변수
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
@@ -29,6 +30,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
         final data = userDoc.data() as Map<String, dynamic>;
         setState(() {
           _nickname = data['nickname'] ?? '닉네임 없음';
+          _job = data['job'] ?? '학생'; // 직업 정보 가져오기
           _isLoading = false;
         });
       }
@@ -95,10 +97,13 @@ class _MyPageScreenState extends State<MyPageScreen> {
       );
     }
 
+    // 직업에 따른 색상 설정
+    Color appBarColor = _job == '학생' ? Colors.orange : Colors.blue;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('마이페이지'),
-        backgroundColor: Colors.orange,
+        backgroundColor: appBarColor,
       ),
       body: Center(
         child: Column(

@@ -34,7 +34,19 @@ class _CommentInputFieldState extends State<CommentInputField> {
       if (currentUser == null) {
         throw Exception('로그인 상태를 확인해주세요.');
       }
-      final nickname = currentUser.displayName ?? 'null';
+      // Firestore에서 현재 사용자의 닉네임과 직업 가져오기
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+
+      if (!userDoc.exists) {
+        throw Exception('사용자 정보를 찾을 수 없습니다.');
+      }
+
+      final nickname = userDoc['nickname'] ?? '익명';
+      final job = userDoc['job'] ?? '직업 없음';
+
       final commentRef = FirebaseFirestore.instance
           .collection('posts')
           .doc(widget.postId)
@@ -46,6 +58,7 @@ class _CommentInputFieldState extends State<CommentInputField> {
         'createdAt': FieldValue.serverTimestamp(),
         'userId': currentUser.uid,
         'nickname': nickname,
+        'job': job, // 직업 정보 추가
       });
       await postService.incrementComments(widget.postId);
       _commentController.clear();
@@ -250,11 +263,40 @@ class _CommentInputFieldState extends State<CommentInputField> {
                   final commentId = comment.id;
                   final commentUserId = comment['userId'] as String? ?? '';
                   final nickname = comment['nickname'] as String? ?? 'null';
+                  final job =
+                      comment['job'] as String? ?? '직업 없음'; // 여기서 job 필드 가져오기
+
                   return ListTile(
                     leading: CircleAvatar(
                       child: Text(nickname[0]),
                     ),
-                    title: Text(content),
+                    title: Text(
+                      nickname,
+                      style: TextStyle(
+                        color: job == '학생'
+                            ? Colors.orange
+                            : job == '공인중개사'
+                                ? Colors.blue
+                                : Colors.black, // 기본 색상
+                        fontWeight: FontWeight.bold, // 두껍게 설정
+                      ),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '직업: $job',
+                          style: TextStyle(
+                            color: job == '학생'
+                                ? Colors.orange
+                                : job == '공인중개사'
+                                    ? Colors.blue
+                                    : Colors.black, // 기본 색상
+                          ),
+                        ),
+                        Text(content), // 후기 내용은 기본 색상 유지
+                      ],
+                    ),
                     trailing: PopupMenuButton<String>(
                       onSelected: (value) {
                         if (value == 'edit') {
