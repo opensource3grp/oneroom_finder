@@ -5,21 +5,6 @@ import 'package:oneroom_finder/userinfo/likepost.dart';
 import 'package:oneroom_finder/userinfo/mypage_screen.dart';
 import 'package:oneroom_finder/userinfo/userpost.dart';
 
-// MapTab 클래스
-class MapTab extends StatelessWidget {
-  const MapTab({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text(
-        '지도 탭',
-        style: TextStyle(fontSize: 24),
-      ),
-    );
-  }
-}
-
 class MyPageTab extends StatelessWidget {
   const MyPageTab({super.key});
 

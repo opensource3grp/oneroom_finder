@@ -160,54 +160,64 @@ class RoomDetailsScreen extends StatelessWidget {
                           );
                         });
                       } else if (value == 'change_status') {
-                        showDialog(
-                          context: context,
-                          builder: (context) {
-                            String updateStatus = status;
-                            return AlertDialog(
-                              title: const Text('게시글 상태 변경'),
-                              content: StatefulBuilder(
-                                builder: (context, setState) {
-                                  return DropdownButton<String>(
-                                    value: updateStatus.isEmpty
-                                        ? post['status'] ?? '거래 가능'
-                                        : updateStatus,
-                                    items: ['거래 가능', '거래 중', '거래 완료']
-                                        .map((status) => DropdownMenuItem(
-                                              value: status,
-                                              child: Text(status),
-                                            ))
-                                        .toList(),
-                                    onChanged: (value) {
-                                      setState(() {
-                                        updateStatus = value!;
-                                      });
-                                    },
-                                  );
-                                },
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.of(context).pop(),
-                                  child: const Text('취소'),
-                                ),
-                                TextButton(
-                                  onPressed: () async {
-                                    await PostService.setStatus(
-                                        postId, updateStatus);
-                                    Navigator.of(context).pop();
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                          content: Text(
-                                              '게시글 상태가 "$updateStatus"로 변경되었습니다.')),
+                        if (userId == authorId) {
+                          showDialog(
+                            context: context,
+                            builder: (context) {
+                              String updateStatus = status;
+                              return AlertDialog(
+                                title: const Text('게시글 상태 변경'),
+                                content: StatefulBuilder(
+                                  builder: (context, setState) {
+                                    return DropdownButton<String>(
+                                      value: updateStatus.isEmpty
+                                          ? post['status'] ?? '거래 가능'
+                                          : updateStatus,
+                                      items: ['거래 가능', '거래 중', '거래 완료']
+                                          .map((status) => DropdownMenuItem(
+                                                value: status,
+                                                child: Text(status),
+                                              ))
+                                          .toList(),
+                                      onChanged: (value) {
+                                        setState(() {
+                                          updateStatus = value!;
+                                        });
+                                      },
                                     );
                                   },
-                                  child: const Text('저장'),
                                 ),
-                              ],
-                            );
-                          },
-                        );
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(context).pop(),
+                                    child: const Text('취소'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () async {
+                                      await PostService.setStatus(
+                                          postId, updateStatus);
+                                      Navigator.of(context).pop();
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                            content: Text(
+                                                '게시글 상태가 "$updateStatus"로 변경되었습니다.')),
+                                      );
+                                    },
+                                    child: const Text('저장'),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('게시글 상태를 변경할 권한이 없습니다.'),
+                            ),
+                          );
+                        }
                       }
                     },
                     itemBuilder: (BuildContext context) {
