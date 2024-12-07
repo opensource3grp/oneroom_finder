@@ -14,10 +14,7 @@ class PostCard extends StatefulWidget {
   final int review;
   final String postId;
   final String tag;
-  final int likes;
   final String status;
-  final bool isLiked;
-  final VoidCallback onLikePressed;
 
   const PostCard({
     super.key,
@@ -31,10 +28,7 @@ class PostCard extends StatefulWidget {
     required this.review,
     required this.postId,
     required this.tag,
-    required this.likes,
     required this.status,
-    required this.isLiked,
-    required this.onLikePressed,
   });
 
   @override
@@ -43,35 +37,6 @@ class PostCard extends StatefulWidget {
 }
 
 class _PostCardState extends State<PostCard> {
-  bool _isFavorite = false;
-  int _likes = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _isFavorite = widget.isLiked;
-    _likes = widget.likes;
-  }
-
-  void _toggleFavorite() async {
-    // Add async here
-    setState(() {
-      _isFavorite = !_isFavorite;
-      _likes += _isFavorite ? 1 : -1;
-    });
-
-    // Update the "likes" field in Firestore
-    DocumentReference postRef =
-        FirebaseFirestore.instance.collection('posts').doc(widget.postId);
-
-    try {
-      await postRef.update({'likesCount': _likes});
-      widget.onLikePressed();
-    } catch (e) {
-      print("Error updating likes: $e");
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -88,18 +53,12 @@ class _PostCardState extends State<PostCard> {
             MaterialPageRoute(
               builder: (context) => RoomDetailsScreen(
                 postId: widget.postId,
-                initialLikes: _likes,
-                initialIsLiked: _isFavorite,
               ),
             ),
           );
-
-          // 상세 화면에서 반환된 데이터로 좋아요 상태 및 개수 업데이트
+          // 상세 화면에서 반환된 데이터로 상태 업데이트
           if (updatedData != null) {
-            setState(() {
-              _likes = updatedData['likes'] ?? _likes;
-              _isFavorite = updatedData['isLiked'] ?? _isFavorite;
-            });
+            // 좋아요 기능이 제거되어 관련 데이터를 업데이트하지 않습니다.
           }
         },
         leading: widget.image.isNotEmpty
@@ -178,17 +137,6 @@ class _PostCardState extends State<PostCard> {
                 Text(
                   '후기 ${widget.review}개',
                   style: const TextStyle(color: Colors.grey),
-                ),
-                Text(
-                  '좋아요 $_likes개', // 좋아요 수 표시
-                  style: const TextStyle(color: Colors.grey),
-                ),
-                IconButton(
-                  icon: Icon(
-                    _isFavorite ? Icons.favorite : Icons.favorite_border,
-                    color: _isFavorite ? Colors.red : Colors.black,
-                  ),
-                  onPressed: _toggleFavorite,
                 ),
               ],
             ),

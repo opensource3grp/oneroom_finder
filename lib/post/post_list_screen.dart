@@ -51,20 +51,6 @@ class _PostListScreenState extends State<PostListScreen> {
     _postStream = postsQuery.snapshots();
   }
 
-  Future<void> _handleLikePressed(
-      String postId, bool isLiked, int currentLikes) async {
-    try {
-      final postRef = _firestore.collection('posts').doc(postId);
-
-      // Toggle the like status
-      await postRef.update({
-        'likes': isLiked ? currentLikes - 1 : currentLikes + 1,
-      });
-    } catch (e) {
-      print('Error updating like count: $e');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -131,14 +117,8 @@ class _PostListScreenState extends State<PostListScreen> {
                       author: post['author'] ?? '작성자 없음',
                       image: post['image'] ?? '',
                       review: post['review'] ?? 0,
-                      likes: post['likes'] ?? 0,
                       postId: post['postDoc'].id,
                       status: post['status'] ?? '거래 가능',
-                      isLiked: post['isLiked'] ?? false,
-                      onLikePressed: () {
-                        _handleLikePressed(post['postDoc'].id,
-                            post['isLiked'] ?? false, post['likes']);
-                      },
                     );
                   },
                 );
@@ -160,14 +140,8 @@ class _PostListScreenState extends State<PostListScreen> {
                   author: postData['author'] ?? '작성자 없음',
                   image: postData['image'] ?? '',
                   review: postData['review'] ?? 0,
-                  likes: postData['likes'] ?? 0,
                   postId: posts[index].id,
                   status: postData['status'] ?? '거래 가능',
-                  isLiked: postData['isLiked'] ?? false,
-                  onLikePressed: () {
-                    _handleLikePressed(posts[index].id,
-                        postData['isLiked'] ?? false, postData['likes']);
-                  },
                 );
               },
             );
@@ -197,8 +171,6 @@ class _PostListScreenState extends State<PostListScreen> {
         'image': postData['image'],
         'tag': postData['tag'],
         'review': review,
-        'isLiked': postData['isLiked'] ?? false,
-        'likes': postData['likes'] ?? 0,
         'createAt': postData['createAt'],
       });
     }
