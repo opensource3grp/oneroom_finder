@@ -134,7 +134,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
   Widget build(BuildContext context) {
     final userId = FirebaseAuth.instance.currentUser?.uid; // 사용자 uid 생성
     final likeStatus = Provider.of<LikeStatus>(context);
-    // ignore: deprecated_member_use
+
     return WillPopScope(
       onWillPop: () async {
         Navigator.pop(context,
@@ -170,7 +170,6 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
           final String? imageUrl = post['image'];
           final String location = post['location'] ?? '위치 정보 없음'; // 위치 정보 기본값
 
-          // 작성자 정보 가져오기
           return FutureBuilder<Map<String, dynamic>?>(
             future: fetchUserDetails(authorId),
             builder: (context, userSnapshot) {
@@ -260,6 +259,12 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                               );
                             },
                           );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('게시글 상태를 변경할 권한이 없습니다.'),
+                            ),
+                          );
                         }
                       },
                       itemBuilder: (BuildContext context) {
@@ -287,9 +292,8 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // 상태 표시 추가
                         Text(
-                          '상태: $status', // 상태를 표시
+                          '상태: $status',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -298,7 +302,6 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        // 태그와 작성자
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -325,7 +328,6 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                           ],
                         ),
                         const SizedBox(height: 8),
-                        // 위치 정보
                         Text(
                           location,
                           style: const TextStyle(
@@ -333,7 +335,6 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                             color: Colors.grey,
                           ),
                         ),
-                        // 제목
                         Text(
                           title,
                           style: const TextStyle(
@@ -342,7 +343,6 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        // 게시물 이미지
                         if (imageUrl != null)
                           Image.network(imageUrl,
                               width: double.infinity,
@@ -353,21 +353,18 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                               fallbackHeight: 200,
                               fallbackWidth: double.infinity),
                         const SizedBox(height: 16),
-                        // 내용
                         Text(
                           content,
                           style: const TextStyle(fontSize: 18),
                         ),
                         const SizedBox(height: 24),
                         const Divider(),
-                        // 좋아요와 후기
                         Row(
                           children: [
                             GestureDetector(
                               onTap: () async {
                                 if (userId != null) {
                                   try {
-                                    // 좋아요 상태 토글
                                     final newLikes = await widget.postService
                                         .toggleLike(
                                             widget.postId, userId, context);
@@ -377,9 +374,9 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                                           widget.postId, userId, context);
                                       likeStatus.updateLikes(newLikes);
                                     });
-                                    // 좋아요/취소 메시지 출력
+
                                     ScaffoldMessenger.of(context)
-                                        .clearSnackBars(); //메세지 중복되지 않도록
+                                        .clearSnackBars();
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(
@@ -387,8 +384,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                                               ? '좋아요를 눌렀습니다.'
                                               : '좋아요를 취소했습니다.',
                                         ),
-                                        duration: const Duration(
-                                            seconds: 2), // 메시지가 2초 동안 표시됩니다.
+                                        duration: const Duration(seconds: 2),
                                       ),
                                     );
                                   } catch (e) {
@@ -406,7 +402,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                                 Icons.thumb_up,
                                 color: likeStatus.isLiked
                                     ? Colors.orange
-                                    : Colors.grey, // 좋아요 상태에 따라 색상 변경
+                                    : Colors.grey,
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -433,11 +429,9 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                                 }
 
                                 try {
-                                  // 채팅방 생성/조회
                                   final chatRoomId = await getOrCreateChatRoom(
                                       userId, authorId);
 
-                                  // 채팅 화면으로 이동
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
