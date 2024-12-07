@@ -33,16 +33,12 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   //String searchQuery = '';
   late String uid;
+  Map<String, bool> likedPosts = {};
 
   @override
   void initState() {
     super.initState();
-    // // posts 전달 대신 Firestore와 연동되도록 수정
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   // 위젯이 완전히 렌더링된 후에 실행할 코드
-    //   developer.log(
-    //       'HomeScreen loaded with nickname: ${widget.nickname}, job: ${widget.job}');
-    // });
+
     // FirebaseAuth를 사용해 uid 가져오기
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser != null) {
@@ -58,6 +54,22 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _selectedIndex = index;
     });
+  }
+
+//좋아요 눌리면 하트 색채우기
+  void _toggleLike(String postId) async {
+    try {
+      bool isLiked = likedPosts[postId] ?? false;
+      await postService.toggleLike(
+          postId, uid, context); // Toggle like in database
+      setState(() {
+        likedPosts[postId] = !isLiked; // Update the like status in the UI
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('오류 발생: $e')),
+      );
+    }
   }
 
   @override
@@ -130,7 +142,10 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       // 각 탭에 해당하는 화면을 표시하는 부분 추가
       body: _selectedIndex == 0
-          ? HomeTab() // 홈 화면
+          ? HomeTab(
+              onLikePressed: _toggleLike, // Pass the toggle function to HomeTab
+              likedPosts: likedPosts,
+            ) // 홈 화면
           : _selectedIndex == 1
               ? MessageTab(userJob: widget.job) // 메시지 탭
               : _selectedIndex == 2

@@ -16,6 +16,8 @@ class PostCard extends StatefulWidget {
   final String tag;
   final int likes;
   final String status;
+  final bool isLiked;
+  final VoidCallback onLikePressed;
 
   const PostCard({
     super.key,
@@ -31,6 +33,8 @@ class PostCard extends StatefulWidget {
     required this.tag,
     required this.likes,
     required this.status,
+    required this.isLiked,
+    required this.onLikePressed,
   });
 
   @override
@@ -40,10 +44,32 @@ class PostCard extends StatefulWidget {
 
 class _PostCardState extends State<PostCard> {
   bool _isFavorite = false;
-  void _toggleFavorite() {
+  int _likes = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _isFavorite = widget.isLiked;
+    _likes = widget.likes;
+  }
+
+  void _toggleFavorite() async {
+    // Add async here
     setState(() {
       _isFavorite = !_isFavorite;
+      _likes += _isFavorite ? 1 : -1;
     });
+
+    // Update the "likes" field in Firestore
+    DocumentReference postRef =
+        FirebaseFirestore.instance.collection('posts').doc(widget.postId);
+
+    try {
+      await postRef.update({'likesCount': _likes});
+      widget.onLikePressed();
+    } catch (e) {
+      print("Error updating likes: $e");
+    }
   }
 
   @override
@@ -56,13 +82,25 @@ class _PostCardState extends State<PostCard> {
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.all(12.0),
-        onTap: () {
-          Navigator.push(
+        onTap: () async {
+          final updatedData = await Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => RoomDetailsScreen(postId: widget.post.id),
+              builder: (context) => RoomDetailsScreen(
+                postId: widget.postId,
+                initialLikes: _likes,
+                initialIsLiked: _isFavorite,
+              ),
             ),
           );
+
+          // 상세 화면에서 반환된 데이터로 좋아요 상태 및 개수 업데이트
+          if (updatedData != null) {
+            setState(() {
+              _likes = updatedData['likes'] ?? _likes;
+              _isFavorite = updatedData['isLiked'] ?? _isFavorite;
+            });
+          }
         },
         leading: widget.image.isNotEmpty
             ? Image.network(
@@ -142,7 +180,7 @@ class _PostCardState extends State<PostCard> {
                   style: const TextStyle(color: Colors.grey),
                 ),
                 Text(
-                  '좋아요 ${widget.likes}개', // 좋아요 수 표시
+                  '좋아요 $_likes개', // 좋아요 수 표시
                   style: const TextStyle(color: Colors.grey),
                 ),
                 IconButton(
