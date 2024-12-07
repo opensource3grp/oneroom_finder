@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:oneroom_finder/chat_room/chat_create.dart';
 import 'package:oneroom_finder/chat_room/chatroom_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class MessageTab extends StatefulWidget {
   final String userJob;
@@ -16,6 +17,29 @@ class MessageTab extends StatefulWidget {
 class _MessageTabState extends State<MessageTab> {
   bool isEditing = false;
   Set<String> selectedChatRooms = {};
+
+// 메시지를 보내고, 채팅방의 lastMessageTime을 업데이트하는 함수
+  Future<void> sendMessage(String chatRoomId, String message) async {
+    // 메시지를 'messages' 컬렉션에 추가
+    await FirebaseFirestore.instance
+        .collection('chatRooms')
+        .doc(chatRoomId)
+        .collection('messages')
+        .add({
+      'message': message,
+      'senderId': FirebaseAuth.instance.currentUser!.uid,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+
+    // 해당 채팅방의 'lastMessage'와 'lastMessageTime'을 업데이트
+    await FirebaseFirestore.instance
+        .collection('chatRooms')
+        .doc(chatRoomId)
+        .update({
+      'lastMessage': message,
+      'lastMessageTime': FieldValue.serverTimestamp(),
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,7 +94,12 @@ class _MessageTabState extends State<MessageTab> {
         ],
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('chatRooms').snapshots(),
+        stream: FirebaseFirestore.instance
+            .collection('chatRooms')
+            .where('users',
+                arrayContains:
+                    FirebaseAuth.instance.currentUser!.uid) // 사용자가 포함된 채팅방만 조회
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());

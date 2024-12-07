@@ -86,7 +86,7 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('게시글 작성'),
+        title: const Text('매물 올리기'),
         backgroundColor: backgroundColor, // 직업에 맞는 배경 색상
       ),
       body: SingleChildScrollView(
