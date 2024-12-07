@@ -3,10 +3,11 @@ import 'package:oneroom_finder/chat_room/message_tab.dart';
 import 'package:oneroom_finder/home_tab.dart';
 import 'package:oneroom_finder/post/post_create_screen.dart';
 import 'package:oneroom_finder/user_service/auth_service.dart';
+import 'package:oneroom_finder/userinfo/mypagetab.dart';
 import 'post/post_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'post/post_search.dart';
-import 'package:oneroom_finder/userinfo/maptap.dart';
+import 'package:oneroom_finder/map/maptab.dart';
 import 'dart:developer' as developer;
 
 class HomeScreen extends StatefulWidget {
@@ -29,7 +30,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final PostService postService = PostService();
-  final MapTab maptap = MapTab();
+  final MapService maptap = MapService();
   int _selectedIndex = 0;
   late String uid;
 
@@ -132,7 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
           : _selectedIndex == 1
               ? MessageTab(userJob: widget.job) // 메시지 탭
               : _selectedIndex == 2
-                  ? MapTab() // 지도 탭
+                  ? MapService() // 지도 탭
                   : MyPageTab(), // 마이페이지 탭
       // 홈탭에만 플로팅 버튼을 추가
       floatingActionButton: _selectedIndex == 0

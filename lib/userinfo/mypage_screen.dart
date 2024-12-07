@@ -13,7 +13,6 @@ class _MyPageScreenState extends State<MyPageScreen> {
   String? _nickname; // 닉네임 저장 변수
   bool _isLoading = true; // 데이터 로딩 상태
   late String _job; // 직업 저장 변수
-
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
