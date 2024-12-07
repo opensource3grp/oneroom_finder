@@ -1,9 +1,12 @@
+/*
 import 'dart:convert';
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter_naver_map/flutter_naver_map.dart';
 
 class MapService extends StatefulWidget {
   const MapService({super.key});
@@ -23,15 +26,24 @@ class _MapServiceState extends State<MapService> {
   String htmlData = "";
 
   @override
-  void initState() {
+  Future<void> _initialize() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    await NaverMapSdk.instance.initialize(
+      clientId: 'ipsrpo93iw',
+      onAuthFailed: (e) => log("네이버앱 인증 오류 : $e", name: "onAuthFailed")
+    );
     super.initState();
     _loadHtmlFromAssets();
   }
 
   Future<void> _loadHtmlFromAssets() async {
-    // assets에서 HTML 파일을 로드
-    htmlData = await rootBundle.loadString('assets/naver_map.html');
-    setState(() {});
+    try {
+      // assets에서 HTML 파일을 로드
+      htmlData = await rootBundle.loadString('assets/naver_map.html');
+      setState(() {});
+    } catch (e) {
+      print('Error loading HTML file: $e');
+    }
   }
 
   @override
@@ -51,7 +63,8 @@ class _MapServiceState extends State<MapService> {
           mimeType: 'text/html',
         ),
         initialUrlRequest: URLRequest(
-          url: Uri.parse("file:///oneroom_finder/assets/naver_map.html"),
+          url: WebUri.uri(Uri.parse(
+              "file:///oneroom_finder/assets/oneroom_finder/assets/naver_map.html")),
         ),
         onWebViewCreated: (controller) {
           webViewController = controller;
@@ -73,6 +86,76 @@ class _MapServiceState extends State<MapService> {
           );
         },
       ),
+    );
+  }
+}
+*/
+import 'dart:async';
+import 'dart:developer';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_naver_map/flutter_naver_map.dart';
+
+class MapService extends StatefulWidget {
+  const MapService({Key? key}) : super(key: key);
+
+  @override
+  _MapService createState() => _MapService();
+}
+
+class _MapService extends State<MapService> {
+  late Future<void> _initializeFuture;
+
+  // 지도 초기화 함수
+  Future<void> _initialize() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    await NaverMapSdk.instance.initialize(
+        clientId: 'ipsrpo93iw', // 클라이언트 ID 설정
+        onAuthFailed: (e) => log("네이버맵 인증 오류 : $e", name: "onAuthFailed"));
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // 비동기 초기화 작업을 Future로 감싸서 처리
+    _initializeFuture = _initialize();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<void>(
+      future: _initializeFuture,
+      builder: (context, snapshot) {
+        // 로딩 중
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        // 오류가 있을 경우 처리
+        if (snapshot.hasError) {
+          return Scaffold(
+            body: Center(child: Text('Error: ${snapshot.error}')),
+          );
+        }
+
+        // 초기화 완료 후 지도 표시
+        return MaterialApp(
+          home: Scaffold(
+            body: NaverMap(
+              options: const NaverMapViewOptions(
+                indoorEnable: true, // 실내 맵 사용 가능 여부 설정
+                locationButtonEnable: false, // 위치 버튼 표시 여부 설정
+                consumeSymbolTapEvents: false, // 심볼 탭 이벤트 소비 여부 설정
+              ),
+              onMapReady: (controller) async {
+                log("onMapReady", name: "onMapReady");
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 }
