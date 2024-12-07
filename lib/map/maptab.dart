@@ -92,7 +92,6 @@ class _MapServiceState extends State<MapService> {
 */
 import 'dart:async';
 import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
 
@@ -104,58 +103,39 @@ class MapService extends StatefulWidget {
 }
 
 class _MapService extends State<MapService> {
-  late Future<void> _initializeFuture;
-
   // 지도 초기화 함수
   Future<void> _initialize() async {
     WidgetsFlutterBinding.ensureInitialized();
     await NaverMapSdk.instance.initialize(
-        clientId: 'ipsrpo93iw', // 클라이언트 ID 설정
+        clientId: 'ipsrpo93iw', // 네이버 클라이언트 ID
         onAuthFailed: (e) => log("네이버맵 인증 오류 : $e", name: "onAuthFailed"));
   }
 
   @override
   void initState() {
     super.initState();
-    // 비동기 초기화 작업을 Future로 감싸서 처리
-    _initializeFuture = _initialize();
+    // 초기화 작업을 initState에서 호출
+    _initialize();
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<void>(
-      future: _initializeFuture,
-      builder: (context, snapshot) {
-        // 로딩 중
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
+    final Completer<NaverMapController> mapControllerCompleter = Completer();
 
-        // 오류가 있을 경우 처리
-        if (snapshot.hasError) {
-          return Scaffold(
-            body: Center(child: Text('Error: ${snapshot.error}')),
-          );
-        }
-
-        // 초기화 완료 후 지도 표시
-        return MaterialApp(
-          home: Scaffold(
-            body: NaverMap(
-              options: const NaverMapViewOptions(
-                indoorEnable: true, // 실내 맵 사용 가능 여부 설정
-                locationButtonEnable: false, // 위치 버튼 표시 여부 설정
-                consumeSymbolTapEvents: false, // 심볼 탭 이벤트 소비 여부 설정
-              ),
-              onMapReady: (controller) async {
-                log("onMapReady", name: "onMapReady");
-              },
-            ),
+    return MaterialApp(
+      home: Scaffold(
+        body: NaverMap(
+          options: const NaverMapViewOptions(
+            indoorEnable: true, // 실내 맵 사용 가능 여부 설정
+            locationButtonEnable: false, // 위치 버튼 표시 여부 설정
+            consumeSymbolTapEvents: false, // 심볼 탭 이벤트 소비 여부 설정
           ),
-        );
-      },
+          onMapReady: (controller) async {
+            mapControllerCompleter.complete(controller);
+            log("onMapReady", name: "onMapReady");
+          },
+        ),
+      ),
     );
   }
 }

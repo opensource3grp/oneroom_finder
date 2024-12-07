@@ -12,7 +12,7 @@ class PostListScreen extends StatefulWidget {
 class _PostListScreenState extends State<PostListScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   late Stream<QuerySnapshot> _postStream;
-  String _selectedSort = '최신순'; // Default sorting option
+  String _selectedFilter = '최신순'; // Default filter option
 
   @override
   void initState() {
@@ -20,39 +20,48 @@ class _PostListScreenState extends State<PostListScreen> {
     _updatePostStream();
   }
 
-  // Update the post stream based on the selected sorting option
+  // Update the post stream based on the selected filter
   void _updatePostStream() {
-    switch (_selectedSort) {
+    Query postsQuery = _firestore.collection('posts');
+
+// 필터에 맞는 쿼리 조건 추가
+    if (_selectedFilter == '거래 가능') {
+      postsQuery = postsQuery
+          .where('status', isEqualTo: null)
+          .where('status', isNotEqualTo: '거래 완료');
+    } else if (_selectedFilter == '거래 완료') {
+      postsQuery = postsQuery.where('status', isEqualTo: '거래 완료');
+    }
+
+    switch (_selectedFilter) {
       case '최신순':
-        _postStream = _firestore
-            .collection('posts')
-            .orderBy('createAt', descending: true) // Sort by creation date
-            .snapshots();
+        postsQuery = postsQuery.orderBy('createAt', descending: true);
         break;
-      case '인기순':
-        _postStream = _firestore
-            .collection('posts')
-            .orderBy('likesCount', descending: true) // Sort by likes
-            .snapshots();
+      case '양도':
+        postsQuery = postsQuery.where('tag', isEqualTo: '양도');
         break;
-      case '팝니다만':
-        _postStream = _firestore
-            .collection('posts')
-            .where('tag', isEqualTo: '팝니다') // Filter posts by "팝니다" tag
-            .snapshots();
-        break;
-      case '삽니다만':
-        _postStream = _firestore
-            .collection('posts')
-            .where('tag', isEqualTo: '삽니다') // Filter posts by "삽니다" tag
-            .snapshots();
+      case '매매':
+        postsQuery = postsQuery.where('tag', isEqualTo: '매매');
         break;
       case '후기많은순':
-        _postStream = _firestore.collection('posts').snapshots();
+        // 후기 많은 순 정렬은 이후 처리
         break;
-      default:
-        _postStream = _firestore.collection('posts').snapshots();
-        break;
+    }
+
+    _postStream = postsQuery.snapshots();
+  }
+
+  Future<void> _handleLikePressed(
+      String postId, bool isLiked, int currentLikes) async {
+    try {
+      final postRef = _firestore.collection('posts').doc(postId);
+
+      // Toggle the like status
+      await postRef.update({
+        'likes': isLiked ? currentLikes - 1 : currentLikes + 1,
+      });
+    } catch (e) {
+      print('Error updating like count: $e');
     }
   }
 
@@ -63,15 +72,15 @@ class _PostListScreenState extends State<PostListScreen> {
         title: const Text('게시글 목록'),
         actions: [
           DropdownButton<String>(
-            value: _selectedSort,
-            icon: const Icon(Icons.sort),
+            value: _selectedFilter,
+            icon: const Icon(Icons.filter_list),
             onChanged: (String? newValue) {
               setState(() {
-                _selectedSort = newValue!;
+                _selectedFilter = newValue!;
                 _updatePostStream();
               });
             },
-            items: ['최신순', '후기많은순', '인기순', '팝니다만', '삽니다만']
+            items: ['최신순', '후기많은순', '양도', '매매', '거래 가능', '거래 완료']
                 .map<DropdownMenuItem<String>>((String value) {
               return DropdownMenuItem<String>(
                 value: value,
@@ -98,9 +107,7 @@ class _PostListScreenState extends State<PostListScreen> {
 
           List<QueryDocumentSnapshot> posts = snapshot.data!.docs;
 
-          if (_selectedSort == '후기많은순') {
-            // 후기 개수를 가져와서 내림차순 정렬
-            // 모든 게시물에 대해 후기 수를 미리 계산하고 likesCount와 reviewsCount를 함께 전달
+          if (_selectedFilter == '후기많은순') {
             return FutureBuilder<List<Map<String, dynamic>>>(
               future: _getPostsWithReviewCounts(posts),
               builder: (context, futureSnapshot) {
@@ -124,22 +131,25 @@ class _PostListScreenState extends State<PostListScreen> {
                       author: post['author'] ?? '작성자 없음',
                       image: post['image'] ?? '',
                       review: post['review'] ?? 0,
-                      likes: post['likes'] ?? 0, // 좋아요 수 추가
+                      likes: post['likes'] ?? 0,
                       postId: post['postDoc'].id,
                       status: post['status'] ?? '거래 가능',
+                      isLiked: post['isLiked'] ?? false,
+                      onLikePressed: () {
+                        _handleLikePressed(post['postDoc'].id,
+                            post['isLiked'] ?? false, post['likes']);
+                      },
                     );
                   },
                 );
               },
             );
           } else {
-            // 정렬된 게시글 목록 표시
             return ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               itemCount: posts.length,
               itemBuilder: (context, index) {
                 final postData = posts[index].data() as Map<String, dynamic>;
-                print('Likes Count for Post: ${postData['likes']}');
                 return PostCard(
                   tag: postData['tag'] ?? '',
                   post: posts[index],
@@ -150,9 +160,14 @@ class _PostListScreenState extends State<PostListScreen> {
                   author: postData['author'] ?? '작성자 없음',
                   image: postData['image'] ?? '',
                   review: postData['review'] ?? 0,
-                  likes: postData['likes'] ?? 0, // 좋아요 수 추가
+                  likes: postData['likes'] ?? 0,
                   postId: posts[index].id,
                   status: postData['status'] ?? '거래 가능',
+                  isLiked: postData['isLiked'] ?? false,
+                  onLikePressed: () {
+                    _handleLikePressed(posts[index].id,
+                        postData['isLiked'] ?? false, postData['likes']);
+                  },
                 );
               },
             );
@@ -182,32 +197,17 @@ class _PostListScreenState extends State<PostListScreen> {
         'image': postData['image'],
         'tag': postData['tag'],
         'review': review,
-        //'reviewsCount': postData[reviewsCount] ?? 0,
+        'isLiked': postData['isLiked'] ?? false,
         'likes': postData['likes'] ?? 0,
         'createAt': postData['createAt'],
       });
     }
 
-    // 인기순 정렬 부분 수정
-    if (_selectedSort == '인기순') {
+    if (_selectedFilter == '후기많은순') {
       postsWithCounts.sort((a, b) {
-        print('Sorting: ${a['likes']} vs ${b['likes']}');
-        return (b['likes'] as int)
-            .compareTo(a['likes'] as int); // likes를 int로 캐스팅하여 비교
+        return b['review'].compareTo(a['review']);
       });
     }
-
-    // 후기 많은 순, 최신순 등 나머지 정렬
-    if (_selectedSort == '최신순') {
-      postsWithCounts.sort((a, b) {
-        return b['createAt'].compareTo(a['createAt']); // 생성일자 기준 내림차순
-      });
-    } else if (_selectedSort == '후기많은순') {
-      postsWithCounts.sort((a, b) {
-        return b['review'].compareTo(a['review']); // 후기 수 기준 내림차순
-      });
-    }
-    print('Sorted Posts: ${postsWithCounts.map((e) => e['likes']).toList()}');
     return postsWithCounts;
   }
 }

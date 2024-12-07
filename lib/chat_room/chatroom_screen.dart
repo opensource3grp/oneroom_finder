@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class ChatRoomScreen extends StatelessWidget {
   final String chatRoomId;
@@ -14,6 +15,9 @@ class ChatRoomScreen extends StatelessWidget {
     final TextEditingController messageController = TextEditingController();
 // 직업에 따른 배경색 설정
     Color messageColor = userJob == '학생' ? Colors.orange : Colors.blue;
+    // 마지막으로 시간을 표시한 분을 추적하는 변수
+    int? lastShownMinute;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('채팅방'),
@@ -53,8 +57,27 @@ class ChatRoomScreen extends StatelessWidget {
                     final messageData = message.data() as Map<String, dynamic>;
                     final sender = messageData['sender'] ?? '알 수 없음';
                     final text = messageData['text'] ?? '';
+                    final timestamp = messageData['timestamp'] as Timestamp?;
                     final isMe = sender ==
                         FirebaseAuth.instance.currentUser?.displayName;
+
+                    DateTime currentMessageTime =
+                        timestamp?.toDate() ?? DateTime.now();
+
+                    // 현재 메시지의 분
+                    int currentMinute = currentMessageTime.minute;
+
+                    bool showTime = false;
+                    // 분이 바뀌면 시간을 표시
+                    if (lastShownMinute == null ||
+                        currentMinute != lastShownMinute) {
+                      showTime = true; // 새로운 분이 시작되었으므로 시간을 표시
+                    }
+
+                    // 마지막 메시지의 시간을 저장
+                    if (showTime) {
+                      lastShownMinute = currentMinute;
+                    }
 
                     // 메시지의 배경 색상을 직업에 맞게 변경
                     Color messageBackgroundColor = isMe
@@ -73,10 +96,26 @@ class ChatRoomScreen extends StatelessWidget {
                           color: messageBackgroundColor,
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: Text(
-                          text,
-                          style: TextStyle(
-                              color: isMe ? Colors.white : Colors.black),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              text,
+                              style: TextStyle(
+                                  color: isMe ? Colors.white : Colors.black),
+                            ),
+                            // 마지막 메시지에서만 시간 표시
+                            if (showTime && timestamp != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 5),
+                                child: Text(
+                                  DateFormat('yyyy.MM.dd HH:mm')
+                                      .format(currentMessageTime),
+                                  style: const TextStyle(
+                                      fontSize: 12, color: Colors.black54),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                     );
@@ -114,6 +153,18 @@ class ChatRoomScreen extends StatelessWidget {
                                 '알 수 없음',
                         'timestamp': FieldValue.serverTimestamp(),
                       });
+
+                      // 채팅방의 lastMessageTime도 갱신
+                      await FirebaseFirestore.instance
+                          .collection('chatRooms')
+                          .doc(chatRoomId)
+                          .update({
+                        'lastMessageTime':
+                            FieldValue.serverTimestamp(), // 마지막 메시지 시간 갱신
+                        'lastMessage': text, // 마지막 메시지 내용 갱신
+                      });
+
+                      // 메시지 입력 필드 초기화
                       messageController.clear();
                     }
                   },

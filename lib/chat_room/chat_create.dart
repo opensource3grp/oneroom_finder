@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class CreateChatRoomDialog extends StatelessWidget {
   const CreateChatRoomDialog({super.key});
@@ -30,6 +31,11 @@ class CreateChatRoomDialog extends StatelessWidget {
                 'name': chatRoomName,
                 'lastMessage': '',
                 'lastMessageTime': FieldValue.serverTimestamp(),
+                'users': [
+                  FirebaseAuth.instance.currentUser!.uid
+                ], // 현재 사용자의 ID를 users 배열에 추가
+                'createdAt': FieldValue.serverTimestamp(), // 생성 시간
+                'unreadCount': 0, // 읽지 않은 메시지 개수
               });
               Navigator.of(context).pop();
             }

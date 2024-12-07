@@ -13,6 +13,73 @@ class PostService {
   final FirebaseStorage storage = FirebaseStorage.instance;
   final AuthService authService = AuthService(); // AuthService 인스턴스 생성
 
+  // Firestore에서 좋아요 추가
+  Future<int> likePost(
+      String postId, String userId, BuildContext context) async {
+    final postRef = firestore.collection('posts').doc(postId);
+
+    await firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(postRef);
+      if (!snapshot.exists) {
+        throw Exception("게시물이 존재하지 않습니다.");
+      }
+
+      final data = snapshot.data()!;
+      final likes = data['likes'] ?? 0;
+      final likedUsers = List<String>.from(data['likedUsers'] ?? []);
+
+      if (!likedUsers.contains(userId)) {
+        likedUsers.add(userId);
+        transaction.update(postRef, {
+          'likes': likes + 1,
+          'likedUsers': likedUsers,
+        });
+      }
+    });
+
+    final updatedPost = await postRef.get();
+    return updatedPost.data()?['likes'] ?? 0;
+  }
+
+  // Firestore에서 좋아요 취소
+  Future<int> unlikePost(
+      String postId, String userId, BuildContext context) async {
+    final postRef = firestore.collection('posts').doc(postId);
+
+    await firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(postRef);
+      if (!snapshot.exists) {
+        throw Exception("게시물이 존재하지 않습니다.");
+      }
+
+      final data = snapshot.data()!;
+      final likes = data['likes'] ?? 0;
+      final likedUsers = List<String>.from(data['likedUsers'] ?? []);
+
+      if (likedUsers.contains(userId)) {
+        likedUsers.remove(userId);
+        transaction.update(postRef, {
+          'likes': likes - 1,
+          'likedUsers': likedUsers,
+        });
+      }
+    });
+
+    final updatedPost = await postRef.get();
+    return updatedPost.data()?['likes'] ?? 0;
+  }
+
+  Future<void> updatePostLikes(String postId, int updatedLikes) async {
+    try {
+      final postRef = firestore.collection('posts').doc(postId);
+      await postRef.update({
+        'likes': updatedLikes,
+      });
+    } catch (e) {
+      throw Exception('게시글 좋아요 업데이트 중 오류 발생: $e');
+    }
+  }
+
   Future<void> createPost(
     BuildContext context,
     String roominfo,
@@ -30,7 +97,7 @@ class PostService {
       return;
     }
 
-    String? imageUrl;
+    String? imageUrl = '';
     final currentUser = await authService.isUserLoggedIn();
     if (!currentUser) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -137,13 +204,12 @@ class PostService {
       return {
         'title': postData['title'],
         'content': postData['content'],
-        'likes': postData['likes'],
-        'review': postData['review'],
+        'likes': postData['likes'] ?? 0, // 기본값 설정
+        'review': postData['review'] ?? 0, // 기본값 설정
         'authorId': authorId, // authorId 추가
         'image': postData['image'],
         'type': postData['type'],
         'roomType': postData['roomType'],
-        'createAt': postData['createAt'],
         'location': postData['location'],
         // ignore: equal_keys_in_map
         'createAt': createAt, // createAt 필드 추가
@@ -296,29 +362,47 @@ class PostService {
   }
 
   // 좋아요 토글 (계정당 1번 제한)
-  Future<void> toggleLike(
+  Future<int> toggleLike(
       String postId, String userId, BuildContext context) async {
     try {
       final postRef =
           FirebaseFirestore.instance.collection('posts').doc(postId);
-      final userLikeRef = postRef.collection('likes').doc(userId);
 
-      final userLikeSnapshot = await userLikeRef.get();
+      // Firestore 트랜잭션으로 좋아요 상태를 안전하게 변경
+      final newLikes =
+          await FirebaseFirestore.instance.runTransaction((transaction) async {
+        final postSnapshot = await transaction.get(postRef);
 
-      if (userLikeSnapshot.exists) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('이미 좋아요를 눌렀습니다.')),
-        );
-        return; // 이미 좋아요를 눌렀으면, 함수 종료
-      } else {
-        // 좋아요 추가
-        await userLikeRef.set({'likedAt': FieldValue.serverTimestamp()});
-        await postRef.update({'likes': FieldValue.increment(1)});
-      }
+        if (!postSnapshot.exists) {
+          throw Exception('게시물이 존재하지 않습니다.');
+        }
+
+        final postData = postSnapshot.data() as Map<String, dynamic>;
+        final likesCount = postData['likesCount'] ?? 0;
+        final likedBy = List<String>.from(postData['likedBy'] ?? []);
+
+        if (likedBy.contains(userId)) {
+          // 좋아요 취소
+          likedBy.remove(userId);
+          transaction.update(postRef, {
+            'likesCount': likesCount - 1,
+            'likedBy': likedBy,
+          });
+          return likesCount - 1;
+        } else {
+          // 좋아요 추가
+          likedBy.add(userId);
+          transaction.update(postRef, {
+            'likesCount': likesCount + 1,
+            'likedBy': likedBy,
+          });
+          return likesCount + 1;
+        }
+      });
+
+      return newLikes;
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('오류 발생: $e')),
-      );
+      throw Exception('좋아요 처리 중 오류 발생: $e');
     }
   }
 
