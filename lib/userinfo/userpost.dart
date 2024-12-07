@@ -124,19 +124,6 @@ class UserPostsDialog extends StatelessWidget {
                               '후기 ${postData['review'] ?? 0}개',
                               style: const TextStyle(color: Colors.grey),
                             ),
-                            Text(
-                              '좋아요 ${postData['likes'] ?? 0}개',
-                              style: const TextStyle(color: Colors.grey),
-                            ),
-                            IconButton(
-                              icon: Icon(
-                                Icons.favorite_border,
-                                color: Colors.black,
-                              ),
-                              onPressed: () {
-                                // 좋아요 버튼 클릭 동작 구현
-                              },
-                            ),
                           ],
                         ),
                       ],

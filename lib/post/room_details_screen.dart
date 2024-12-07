@@ -5,62 +5,17 @@ import 'package:oneroom_finder/chat_room/chatroom_screen.dart';
 import 'package:oneroom_finder/post/editpost_dialog.dart';
 import 'comment.dart';
 import 'post_service.dart';
-import 'package:provider/provider.dart';
-import 'package:oneroom_finder/post/like_status.dart';
 
-class RoomDetailsScreen extends StatefulWidget {
+class RoomDetailsScreen extends StatelessWidget {
   final String postId;
-  final int initialLikes; // 좋아요 초기 값
-  final bool initialIsLiked; // 초기 좋아요 상태
   final PostService postService = PostService();
 
-  RoomDetailsScreen({
-    super.key,
-    required this.postId,
-    this.initialLikes = 0,
-    this.initialIsLiked = false,
-  });
-
-  @override
-  _RoomDetailsScreenState createState() => _RoomDetailsScreenState();
-}
-
-class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
-  @override
-  void initState() {
-    super.initState();
-    // 초기값을 Provider에 설정
-    final likeStatus = Provider.of<LikeStatus>(context, listen: false);
-    likeStatus.setLikeStatus(widget.initialLikes, widget.initialIsLiked);
-
-    FirebaseFirestore.instance
-        .collection('posts')
-        .doc(widget.postId)
-        .get()
-        .then((postSnapshot) {
-      if (postSnapshot.exists) {
-        final postData = postSnapshot.data() as Map<String, dynamic>;
-        final likedBy = List<String>.from(postData['likedBy'] ?? []);
-        final likeStatus = Provider.of<LikeStatus>(context, listen: false);
-        likeStatus.setLikeStatus(postData['likesCount'] ?? 0,
-            likedBy.contains(FirebaseAuth.instance.currentUser?.uid));
-        // 좋아요 상태 변경 후 UI에 반영하기
-        setState(() {}); // UI 갱신
-      }
-    });
-  }
+  RoomDetailsScreen({super.key, required this.postId});
 
   Stream<DocumentSnapshot> fetchPostDetails() {
     return FirebaseFirestore.instance
         .collection('posts')
-        .doc(widget.postId) // 특정 게시물 조회
-        .snapshots();
-  }
-
-  Stream<QuerySnapshot> fetchAvailablePosts() {
-    return FirebaseFirestore.instance
-        .collection('posts')
-        .where('status', isEqualTo: '거래 가능') // 거래 가능 상태인 게시물만 가져오기
+        .doc(postId)
         .snapshots();
   }
 
@@ -133,7 +88,6 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final userId = FirebaseAuth.instance.currentUser?.uid; // 사용자 uid 생성
-    final likeStatus = Provider.of<LikeStatus>(context);
 
     return StreamBuilder<DocumentSnapshot>(
       stream: fetchPostDetails(),
@@ -164,6 +118,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
         final String? imageUrl = post['image'];
         final String location = post['location'] ?? '위치 정보 없음'; // 위치 정보 기본값
 
+        // 작성자 정보 가져오기
         return FutureBuilder<Map<String, dynamic>?>(
           future: fetchUserDetails(authorId),
           builder: (context, userSnapshot) {
@@ -190,12 +145,10 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                         showDialog(
                           context: context,
                           builder: (context) =>
-                              EditPostDialog(postId: widget.postId, post: post),
+                              EditPostDialog(postId: postId, post: post),
                         );
                       } else if (value == 'delete') {
-                        widget.postService
-                            .deletePost(context, widget.postId)
-                            .then((_) {
+                        postService.deletePost(context, postId).then((_) {
                           Navigator.of(context).pop();
                         }).catchError((e) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -237,7 +190,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                                 TextButton(
                                   onPressed: () async {
                                     await PostService.setStatus(
-                                        widget.postId, updateStatus);
+                                        postId, updateStatus);
                                     Navigator.of(context).pop();
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
@@ -250,12 +203,6 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                               ],
                             );
                           },
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('게시글 상태를 변경할 권한이 없습니다.'),
-                          ),
                         );
                       }
                     },
@@ -284,8 +231,9 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // 상태 표시 추가
                       Text(
-                        '상태: $status',
+                        '상태: $status', // 상태를 표시
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -293,6 +241,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
+                      // 태그와 작성자
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -319,6 +268,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                         ],
                       ),
                       const SizedBox(height: 8),
+                      // 위치 정보
                       Text(
                         location,
                         style: const TextStyle(
@@ -326,6 +276,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                           color: Colors.grey,
                         ),
                       ),
+                      // 제목
                       Text(
                         title,
                         style: const TextStyle(
@@ -334,6 +285,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
+                      // 게시물 이미지
                       if (imageUrl != null)
                         Image.network(imageUrl,
                             width: double.infinity,
@@ -344,61 +296,16 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                             fallbackHeight: 200,
                             fallbackWidth: double.infinity),
                       const SizedBox(height: 16),
+                      // 내용
                       Text(
                         content,
                         style: const TextStyle(fontSize: 18),
                       ),
                       const SizedBox(height: 24),
                       const Divider(),
+                      // 좋아요와 후기
                       Row(
                         children: [
-                          GestureDetector(
-                            onTap: () async {
-                              if (userId != null) {
-                                try {
-                                  final newLikes = await widget.postService
-                                      .toggleLike(
-                                          widget.postId, userId, context);
-
-                                  setState(() {
-                                    likeStatus.toggleLike(
-                                        widget.postId, userId, context);
-                                    likeStatus.updateLikes(newLikes);
-                                  });
-
-                                  ScaffoldMessenger.of(context)
-                                      .clearSnackBars();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        likeStatus.isLiked
-                                            ? '좋아요를 눌렀습니다.'
-                                            : '좋아요를 취소했습니다.',
-                                      ),
-                                      duration: const Duration(seconds: 2),
-                                    ),
-                                  );
-                                } catch (e) {
-                                  widget.postService
-                                      .showErrorDialog(context, e.toString());
-                                }
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content: Text('좋아요는 로그인 후 이용 가능합니다.')),
-                                );
-                              }
-                            },
-                            child: Icon(
-                              Icons.thumb_up,
-                              color: likeStatus.isLiked
-                                  ? Colors.orange
-                                  : Colors.grey,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text('${likeStatus.likes}명이 좋아합니다.'),
-                          const Spacer(),
                           const Icon(Icons.comment, color: Colors.orange),
                           const SizedBox(width: 8),
                           Text('$comment개의 후기'),
@@ -419,9 +326,11 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                               }
 
                               try {
+                                // 채팅방 생성/조회
                                 final chatRoomId =
                                     await getOrCreateChatRoom(userId, authorId);
 
+                                // 채팅 화면으로 이동
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -452,7 +361,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                       ),
                       const SizedBox(height: 8),
                       CommentInputField(
-                        postId: widget.postId,
+                        postId: postId,
                         isCommentAllowed: status == '거래 완료',
                       ),
                     ],

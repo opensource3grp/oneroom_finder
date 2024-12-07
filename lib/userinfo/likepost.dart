@@ -170,10 +170,6 @@ class LikePostDialog extends StatelessWidget {
                               '후기 ${postData['review'] ?? 0}개',
                               style: const TextStyle(color: Colors.grey),
                             ),
-                            Text(
-                              '좋아요 ${postData['likes'] ?? 0}개',
-                              style: const TextStyle(color: Colors.grey),
-                            ),
                           ],
                         ),
                       ],

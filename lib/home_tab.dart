@@ -6,12 +6,16 @@ import 'package:oneroom_finder/post/post_service.dart';
 import 'package:oneroom_finder/post/room_details_screen.dart';
 
 class HomeTab extends StatefulWidget {
-  final Function onLikePressed;
-  final Map<String, bool> likedPosts;
+  final String nickname;
+  final String job;
+  final String uid;
 
-  const HomeTab(
-      {Key? key, required this.onLikePressed, required this.likedPosts})
-      : super(key: key);
+  const HomeTab({
+    Key? key,
+    required this.nickname,
+    required this.job,
+    required this.uid,
+  }) : super(key: key);
 
   @override
   _HomeTabState createState() => _HomeTabState();
@@ -19,30 +23,6 @@ class HomeTab extends StatefulWidget {
 
 class _HomeTabState extends State<HomeTab> {
   final PostService postService = PostService();
-  late Map<String, bool> likedPosts;
-
-  @override
-  void initState() {
-    super.initState();
-    likedPosts = {}; // Initialize liked posts map
-  }
-
-  void _toggleLike(String postId, int currentLikes) async {
-    final newLikeStatus = !(likedPosts[postId] ?? false);
-    final updatedLikes = newLikeStatus ? currentLikes + 1 : currentLikes - 1;
-
-    setState(() {
-      likedPosts[postId] = newLikeStatus;
-    });
-
-    try {
-      await postService.updatePostLikes(postId, updatedLikes);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('오류 발생: $e')),
-      );
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -95,9 +75,7 @@ class _HomeTabState extends State<HomeTab> {
               final author = postData['author'] ?? '작성자 없음';
               final image = postData['image'] ?? '';
               final tag = postData['tag'] ?? '';
-              final likes = postData['likes'] ?? 0;
               final status = postData['status'] ?? '거래 가능';
-              final isLiked = likedPosts[postId] ?? false;
 
               return StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
@@ -113,23 +91,14 @@ class _HomeTabState extends State<HomeTab> {
 
                   return GestureDetector(
                     onTap: () async {
-                      final updated = await Navigator.push(
+                      await Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => RoomDetailsScreen(
                             postId: postId,
-                            initialLikes: likes,
-                            initialIsLiked: isLiked,
                           ),
                         ),
                       );
-
-                      // 상세 화면에서 돌아왔을 때 좋아요 상태 업데이트
-                      if (updated != null && updated is Map<String, dynamic>) {
-                        setState(() {
-                          likedPosts[postId] = updated['isLiked'] ?? isLiked;
-                        });
-                      }
                     },
                     child: PostCard(
                       tag: tag,
@@ -141,13 +110,8 @@ class _HomeTabState extends State<HomeTab> {
                       author: author,
                       image: image,
                       review: review, // Firestore에서 commentsCount 가져오기
-                      likes: likes,
                       postId: postId,
                       status: status,
-                      isLiked: isLiked,
-                      onLikePressed: () {
-                        _toggleLike(postId, likes);
-                      },
                     ),
                   );
                 },

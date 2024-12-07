@@ -13,73 +13,6 @@ class PostService {
   final FirebaseStorage storage = FirebaseStorage.instance;
   final AuthService authService = AuthService(); // AuthService 인스턴스 생성
 
-  // Firestore에서 좋아요 추가
-  Future<int> likePost(
-      String postId, String userId, BuildContext context) async {
-    final postRef = firestore.collection('posts').doc(postId);
-
-    await firestore.runTransaction((transaction) async {
-      final snapshot = await transaction.get(postRef);
-      if (!snapshot.exists) {
-        throw Exception("게시물이 존재하지 않습니다.");
-      }
-
-      final data = snapshot.data()!;
-      final likes = data['likes'] ?? 0;
-      final likedUsers = List<String>.from(data['likedUsers'] ?? []);
-
-      if (!likedUsers.contains(userId)) {
-        likedUsers.add(userId);
-        transaction.update(postRef, {
-          'likes': likes + 1,
-          'likedUsers': likedUsers,
-        });
-      }
-    });
-
-    final updatedPost = await postRef.get();
-    return updatedPost.data()?['likes'] ?? 0;
-  }
-
-  // Firestore에서 좋아요 취소
-  Future<int> unlikePost(
-      String postId, String userId, BuildContext context) async {
-    final postRef = firestore.collection('posts').doc(postId);
-
-    await firestore.runTransaction((transaction) async {
-      final snapshot = await transaction.get(postRef);
-      if (!snapshot.exists) {
-        throw Exception("게시물이 존재하지 않습니다.");
-      }
-
-      final data = snapshot.data()!;
-      final likes = data['likes'] ?? 0;
-      final likedUsers = List<String>.from(data['likedUsers'] ?? []);
-
-      if (likedUsers.contains(userId)) {
-        likedUsers.remove(userId);
-        transaction.update(postRef, {
-          'likes': likes - 1,
-          'likedUsers': likedUsers,
-        });
-      }
-    });
-
-    final updatedPost = await postRef.get();
-    return updatedPost.data()?['likes'] ?? 0;
-  }
-
-  Future<void> updatePostLikes(String postId, int updatedLikes) async {
-    try {
-      final postRef = firestore.collection('posts').doc(postId);
-      await postRef.update({
-        'likes': updatedLikes,
-      });
-    } catch (e) {
-      throw Exception('게시글 좋아요 업데이트 중 오류 발생: $e');
-    }
-  }
-
   Future<void> createPost(
     BuildContext context,
     String roominfo,
@@ -148,7 +81,7 @@ class PostService {
         'tag': tag,
         'title': roominfo,
         'content': content,
-        'likes': 0,
+
         'review': 0,
         'userId': FirebaseAuth.instance.currentUser?.uid,
         'authorId': authorId, // authorId 추가
@@ -204,7 +137,7 @@ class PostService {
       return {
         'title': postData['title'],
         'content': postData['content'],
-        'likes': postData['likes'] ?? 0, // 기본값 설정
+
         'review': postData['review'] ?? 0, // 기본값 설정
         'authorId': authorId, // authorId 추가
         'image': postData['image'],
@@ -325,24 +258,6 @@ class PostService {
     }
   }
 
-  // 좋아요 기능
-  Future<void> incrementLikes(String postId) async {
-    try {
-      final postRef = firestore.collection('posts').doc(postId);
-
-      await firestore.runTransaction((transaction) async {
-        final snapshot = await transaction.get(postRef);
-
-        if (!snapshot.exists) return;
-
-        final currentLikes = snapshot.data()?['likes'] ?? 0;
-        transaction.update(postRef, {'likes': currentLikes + 1});
-      });
-    } catch (e) {
-      debugPrint('Error updating likes: $e');
-    }
-  }
-
   //댓글 횟수
   Future<void> incrementComments(String postId) async {
     try {
@@ -358,51 +273,6 @@ class PostService {
       });
     } catch (e) {
       debugPrint('Error updating comments: $e');
-    }
-  }
-
-  // 좋아요 토글 (계정당 1번 제한)
-  Future<int> toggleLike(
-      String postId, String userId, BuildContext context) async {
-    try {
-      final postRef =
-          FirebaseFirestore.instance.collection('posts').doc(postId);
-
-      // Firestore 트랜잭션으로 좋아요 상태를 안전하게 변경
-      final newLikes =
-          await FirebaseFirestore.instance.runTransaction((transaction) async {
-        final postSnapshot = await transaction.get(postRef);
-
-        if (!postSnapshot.exists) {
-          throw Exception('게시물이 존재하지 않습니다.');
-        }
-
-        final postData = postSnapshot.data() as Map<String, dynamic>;
-        final likesCount = postData['likesCount'] ?? 0;
-        final likedBy = List<String>.from(postData['likedBy'] ?? []);
-
-        if (likedBy.contains(userId)) {
-          // 좋아요 취소
-          likedBy.remove(userId);
-          transaction.update(postRef, {
-            'likesCount': likesCount - 1,
-            'likedBy': likedBy,
-          });
-          return likesCount - 1;
-        } else {
-          // 좋아요 추가
-          likedBy.add(userId);
-          transaction.update(postRef, {
-            'likesCount': likesCount + 1,
-            'likedBy': likedBy,
-          });
-          return likesCount + 1;
-        }
-      });
-
-      return newLikes;
-    } catch (e) {
-      throw Exception('좋아요 처리 중 오류 발생: $e');
     }
   }
 

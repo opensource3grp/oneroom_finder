@@ -32,9 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final PostService postService = PostService();
   final MapService maptap = MapService();
   int _selectedIndex = 0;
-  //String searchQuery = '';
   late String uid;
-  Map<String, bool> likedPosts = {};
 
   @override
   void initState() {
@@ -55,22 +53,6 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _selectedIndex = index;
     });
-  }
-
-//좋아요 눌리면 하트 색채우기
-  void _toggleLike(String postId) async {
-    try {
-      bool isLiked = likedPosts[postId] ?? false;
-      await postService.toggleLike(
-          postId, uid, context); // Toggle like in database
-      setState(() {
-        likedPosts[postId] = !isLiked; // Update the like status in the UI
-      });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('오류 발생: $e')),
-      );
-    }
   }
 
   @override
@@ -144,8 +126,9 @@ class _HomeScreenState extends State<HomeScreen> {
       // 각 탭에 해당하는 화면을 표시하는 부분 추가
       body: _selectedIndex == 0
           ? HomeTab(
-              onLikePressed: _toggleLike, // Pass the toggle function to HomeTab
-              likedPosts: likedPosts,
+              nickname: widget.nickname,
+              job: widget.job,
+              uid: widget.uid,
             ) // 홈 화면
           : _selectedIndex == 1
               ? MessageTab(userJob: widget.job) // 메시지 탭
