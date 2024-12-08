@@ -14,6 +14,8 @@ class PostCard extends StatefulWidget {
   final String postId;
   final String tag;
   final String status;
+  final bool isLiked;
+  final VoidCallback onLikeToggle;
 
   const PostCard({
     super.key,
@@ -28,6 +30,8 @@ class PostCard extends StatefulWidget {
     required this.postId,
     required this.tag,
     required this.status,
+    required this.isLiked,
+    required this.onLikeToggle,
   });
 
   @override
@@ -36,6 +40,14 @@ class PostCard extends StatefulWidget {
 }
 
 class _PostCardState extends State<PostCard> {
+  bool isLiked = false; // 하트 상태를 나타내는 변수
+
+  @override
+  void initState() {
+    super.initState();
+    isLiked = widget.isLiked; // 부모에서 전달된 isLiked 값을 초기화
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -136,6 +148,18 @@ class _PostCardState extends State<PostCard> {
                 Text(
                   '후기 ${widget.review}개',
                   style: const TextStyle(color: Colors.grey),
+                ),
+                IconButton(
+                  onPressed: () {
+                    widget.onLikeToggle(); // 부모에서 전달받은 콜백 사용
+                    setState(() {
+                      isLiked = !isLiked; // 하트 상태를 반영
+                    });
+                  },
+                  icon: Icon(
+                    isLiked ? Icons.favorite : Icons.favorite_border,
+                    color: isLiked ? Colors.red : Colors.grey,
+                  ), // 좋아요 상태 토글
                 ),
               ],
             ),

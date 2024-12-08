@@ -24,6 +24,21 @@ class HomeTab extends StatefulWidget {
 class _HomeTabState extends State<HomeTab> {
   final PostService postService = PostService();
 
+  // 좋아요 상태를 Firestore에 업데이트하는 메서드
+  Future<void> _toggleLike(String postId, bool newState) async {
+    final postRef = FirebaseFirestore.instance.collection('posts').doc(postId);
+
+    if (newState) {
+      await postRef.update({
+        'likes': FieldValue.arrayUnion([widget.uid]), // 현재 사용자 UID 추가
+      });
+    } else {
+      await postRef.update({
+        'likes': FieldValue.arrayRemove([widget.uid]), // UID 제거
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -36,7 +51,7 @@ class _HomeTabState extends State<HomeTab> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const PostListScreen(),
+                  builder: (context) => PostListScreen(uid: widget.uid),
                 ),
               );
             },
@@ -76,6 +91,7 @@ class _HomeTabState extends State<HomeTab> {
               final image = postData['image'] ?? '';
               final tag = postData['tag'] ?? '';
               final status = postData['status'] ?? '거래 가능';
+              final isLiked = (postData['likes'] ?? []).contains(widget.uid);
 
               return StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
@@ -112,6 +128,9 @@ class _HomeTabState extends State<HomeTab> {
                       review: review, // Firestore에서 commentsCount 가져오기
                       postId: postId,
                       status: status,
+                      isLiked: isLiked,
+                      onLikeToggle: () =>
+                          _toggleLike(postId, !isLiked), // 하트 상태 토글
                     ),
                   );
                 },

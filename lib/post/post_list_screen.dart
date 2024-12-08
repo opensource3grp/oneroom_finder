@@ -3,7 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'post_card.dart';
 
 class PostListScreen extends StatefulWidget {
-  const PostListScreen({super.key});
+  final String uid; // 현재 사용자 UID 전달
+
+  const PostListScreen({super.key, required this.uid});
 
   @override
   _PostListScreenState createState() => _PostListScreenState();
@@ -49,6 +51,20 @@ class _PostListScreenState extends State<PostListScreen> {
     }
 
     _postStream = postsQuery.snapshots();
+  }
+
+  Future<void> _toggleLike(String postId, bool newState) async {
+    final postRef = _firestore.collection('posts').doc(postId);
+
+    if (newState) {
+      await postRef.update({
+        'likes': FieldValue.arrayUnion([widget.uid]), // 현재 사용자 UID 추가
+      });
+    } else {
+      await postRef.update({
+        'likes': FieldValue.arrayRemove([widget.uid]), // UID 제거
+      });
+    }
   }
 
   @override
@@ -106,19 +122,26 @@ class _PostListScreenState extends State<PostListScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   itemCount: sortedPosts.length,
                   itemBuilder: (context, index) {
-                    final post = sortedPosts[index];
+                    final postData =
+                        posts[index].data() as Map<String, dynamic>;
+                    final likes = List<String>.from(postData['likes'] ?? []);
+                    final isLiked = likes.contains(widget.uid);
+
                     return PostCard(
-                      tag: post['tag'] ?? '',
-                      post: post['postDoc'],
-                      title: post['title'] ?? '제목 없음',
-                      content: post['content'] ?? '내용 없음',
-                      location: post['location'] ?? '위치 없음',
-                      price: post['price'] ?? '가격 정보 없음',
-                      author: post['author'] ?? '작성자 없음',
-                      image: post['image'] ?? '',
-                      review: post['review'] ?? 0,
-                      postId: post['postDoc'].id,
-                      status: post['status'] ?? '거래 가능',
+                      tag: postData['tag'] ?? '',
+                      post: posts[index],
+                      title: postData['title'] ?? '제목 없음',
+                      content: postData['content'] ?? '내용 없음',
+                      location: postData['location'] ?? '위치 없음',
+                      price: postData['price'] ?? '가격 정보 없음',
+                      author: postData['author'] ?? '작성자 없음',
+                      image: postData['image'] ?? '',
+                      review: postData['review'] ?? 0,
+                      postId: posts[index].id,
+                      status: postData['status'] ?? '거래 가능',
+                      isLiked: isLiked,
+                      onLikeToggle: () =>
+                          _toggleLike(posts[index].id, !isLiked),
                     );
                   },
                 );
@@ -130,6 +153,10 @@ class _PostListScreenState extends State<PostListScreen> {
               itemCount: posts.length,
               itemBuilder: (context, index) {
                 final postData = posts[index].data() as Map<String, dynamic>;
+                final likes = List<String>.from(postData['likes'] ?? []);
+                final isLiked =
+                    likes.contains(widget.uid); // 현재 사용자가 해당 게시글을 좋아요 했는지 여부
+
                 return PostCard(
                   tag: postData['tag'] ?? '',
                   post: posts[index],
@@ -142,6 +169,8 @@ class _PostListScreenState extends State<PostListScreen> {
                   review: postData['review'] ?? 0,
                   postId: posts[index].id,
                   status: postData['status'] ?? '거래 가능',
+                  isLiked: isLiked,
+                  onLikeToggle: () => _toggleLike(posts[index].id, !isLiked),
                 );
               },
             );
