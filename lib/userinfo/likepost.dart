@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:oneroom_finder/post/room_details_screen.dart';
+//import 'package:oneroom_finder/post/option_icons.dart';
 
 class LikePostDialog extends StatelessWidget {
   final String userId;
@@ -84,6 +85,16 @@ class LikePostDialog extends StatelessWidget {
                     posts[index].data() as Map<String, dynamic>;
                 final String postId = posts[index].id;
 
+                // selectedOptions를 postData에서 가져오는 로직 추가
+                final List<String> selectedOptions =
+                    (postData['options'] as List<dynamic>?)
+                            ?.map((option) => option['option'] as String)
+                            .toList() ??
+                        [];
+
+                final parkingAvailable = postData['parkingAvailable'] ?? 'No';
+                final moveInDate = postData['moveInDate'] ?? 'No';
+
                 return Card(
                   margin: const EdgeInsets.symmetric(vertical: 8.0),
                   elevation: 5,
@@ -96,8 +107,13 @@ class LikePostDialog extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>
-                              RoomDetailsScreen(postId: postId),
+                          builder: (context) => RoomDetailsScreen(
+                            postId: postId,
+                            selectedOptions: selectedOptions,
+                            parkingAvailable: parkingAvailable, // 주차 가능 여부 전달
+                            moveInDate: moveInDate, // 입주 가능 여부 전달
+                            //optionIcons: optionIcons,
+                          ),
                         ),
                       );
                     },

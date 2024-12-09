@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:oneroom_finder/post/room_details_screen.dart';
+//import 'package:oneroom_finder/post/option_icons.dart';
 
 class UserPostsDialog extends StatelessWidget {
   final String userId;
@@ -38,6 +39,28 @@ class UserPostsDialog extends StatelessWidget {
                 final postData = posts[index].data() as Map<String, dynamic>;
                 final postId = posts[index].id;
 
+                // selectedOptions를 postData에서 가져오는 로직 수정
+                List<String> selectedOptions = [];
+                if (postData['options'] != null &&
+                    postData['options'] is List) {
+                  selectedOptions = (postData['options'] as List)
+                      .map((option) {
+                        if (option is Map<String, dynamic> &&
+                            option.containsKey('option')) {
+                          return option['option']
+                              as String; // Map에서 'option' 값을 가져옴
+                        }
+                        return ''; // 값이 없으면 빈 문자열 반환
+                      })
+                      .where((option) => option.isNotEmpty)
+                      .toList(); // 빈 문자열 제외
+                } else {
+                  selectedOptions = []; // 데이터가 없으면 빈 리스트로 설정
+                }
+
+                final parkingAvailable = postData['parkingAvailable'] == false;
+                final moveInDate = postData['moveInDate'] == false;
+
                 return Card(
                   margin: const EdgeInsets.symmetric(vertical: 8.0),
                   elevation: 5,
@@ -50,8 +73,13 @@ class UserPostsDialog extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>
-                              RoomDetailsScreen(postId: postId),
+                          builder: (context) => RoomDetailsScreen(
+                            postId: postId,
+                            selectedOptions: selectedOptions,
+                            parkingAvailable: parkingAvailable, // 주차 가능 여부 전달
+                            moveInDate: moveInDate, // 입주 가능 여부 전달
+                            //optionIcons: optionIcons,
+                          ),
                         ),
                       );
                     },

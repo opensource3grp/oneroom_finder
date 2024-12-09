@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:oneroom_finder/user_service/signup_screen.dart';
+import 'package:oneroom_finder/post/user_service/signup_screen.dart';
+export 'auth_service.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;

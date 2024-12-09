@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Firebase Auth 추가
 import 'package:cloud_firestore/cloud_firestore.dart'; // Firestore 추가
-import 'package:oneroom_finder/user_service/welcome_splash_screen.dart';
+import 'package:oneroom_finder/post/user_service/welcome_splash_screen.dart';
 
 class LoginSignupScreen extends StatefulWidget {
   const LoginSignupScreen({super.key});

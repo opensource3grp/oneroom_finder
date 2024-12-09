@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:oneroom_finder/chat_room/message_tab.dart';
 import 'package:oneroom_finder/home_tab.dart';
 import 'package:oneroom_finder/post/post_create_screen.dart';
-import 'package:oneroom_finder/user_service/auth_service.dart';
+import 'package:oneroom_finder/post/user_service/auth_service.dart';
 import 'package:oneroom_finder/userinfo/mypagetab.dart';
 import 'post/post_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
