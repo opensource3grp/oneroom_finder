@@ -4,6 +4,7 @@ import 'package:oneroom_finder/post/post_card.dart';
 import 'package:oneroom_finder/post/post_list_screen.dart';
 import 'package:oneroom_finder/post/post_service.dart';
 import 'package:oneroom_finder/post/room_details_screen.dart';
+//import 'package:oneroom_finder/post/option_icons.dart';
 
 class HomeTab extends StatefulWidget {
   final String nickname;
@@ -81,6 +82,9 @@ class _HomeTabState extends State<HomeTab> {
             itemBuilder: (context, index) {
               final post = posts[index];
               final postData = post.data() as Map<String, dynamic>;
+              final parkingAvailable =
+                  postData['parkingAvailable'] ?? 'No'; // 주차 가능 여부
+              final moveInDate = postData['moveInDate'] ?? 'No'; // 입주 가능 여부
 
               final postId = post.id;
               final title = postData['title'] ?? '제목 없음';
@@ -92,6 +96,17 @@ class _HomeTabState extends State<HomeTab> {
               final tag = postData['tag'] ?? '';
               final status = postData['status'] ?? '거래 가능';
               final isLiked = (postData['likes'] ?? []).contains(widget.uid);
+
+// selectedOptions 추출
+              final List<String> selectedOptions =
+                  (postData['options'] as List<dynamic>?)?.map((option) {
+                        if (option != null && option is Map<String, dynamic>) {
+                          return option['option'] as String? ??
+                              ''; // Default to empty string if 'name' is null
+                        }
+                        return ''; // Return empty string for invalid or missing 'name'
+                      }).toList() ??
+                      [];
 
               return StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
@@ -112,6 +127,10 @@ class _HomeTabState extends State<HomeTab> {
                         MaterialPageRoute(
                           builder: (context) => RoomDetailsScreen(
                             postId: postId,
+                            selectedOptions: selectedOptions,
+                            parkingAvailable: parkingAvailable, // 주차 가능 여부 전달
+                            moveInDate: moveInDate, // 입주 가능 여부 전달
+                            //optionIcons: optionIcons,
                           ),
                         ),
                       );

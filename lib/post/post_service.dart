@@ -1,19 +1,20 @@
 import 'dart:io';
 import 'dart:typed_data';
-//import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/material.dart';
 import 'package:oneroom_finder/post/room_details_screen.dart';
-import 'package:oneroom_finder/user_service/auth_service.dart';
+import 'package:oneroom_finder/post/user_service/auth_service.dart';
+
+//import 'package:oneroom_finder/post/option_icons.dart';
 
 class PostService {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final FirebaseStorage storage = FirebaseStorage.instance;
   final AuthService authService = AuthService(); // AuthService 인스턴스 생성
 
-  Future<void> createPost(
+  Future<String> createPost(
     BuildContext context,
     String roominfo,
     String content, {
@@ -22,12 +23,17 @@ class PostService {
     String? type, // 거래 유형
     String? roomType, // 타입 선택 (원룸, 투룸, 쓰리룸)
     String? location,
+    required bool parkingAvailable, // 주차 여부를 bool로 변경
+    required bool moveInDate, // 입주 가능 여부를 bool로 변경
+    required String floor, //층수
+    required String maintenanceFee, // 관리비
+    required List<Map<String, dynamic>>? options, // 옵션 리스트
   }) async {
     if (roominfo.isEmpty || content.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('제목과 내용을 입력해주세요.')),
       );
-      return;
+      return '';
     }
 
     String? imageUrl = '';
@@ -36,7 +42,7 @@ class PostService {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('로그인된 사용자가 없습니다.')),
       );
-      return;
+      return '';
     }
     final String authorId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
@@ -45,22 +51,21 @@ class PostService {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('사용자 ID를 찾을 수 없습니다.')),
       );
-      return;
+      return '';
     }
+
+    final optionsToSave = options ?? [];
 
     // 이미지가 선택되었으면 Firebase Storage에 업로드
     if (image != null) {
       try {
         // 이미지를 Firebase Storage에 업로드할 파일 경로 지정
-        final storageRef = FirebaseStorage.instance
+        final storageRef = storage
             .ref()
             .child('post_images/${DateTime.now().millisecondsSinceEpoch}');
-
-        // File 객체를 Firebase Storage에 업로드
         final uploadTask = storageRef.putFile(image);
         await uploadTask.whenComplete(() async {
-          // 업로드 완료 후 이미지 URL 가져오기
-          String imageUrl = await storageRef.getDownloadURL();
+          imageUrl = await storageRef.getDownloadURL();
           print('이미지 업로드 완료: $imageUrl');
         });
       } catch (e) {
@@ -77,11 +82,10 @@ class PostService {
 
     // Firestore에 게시글 저장
     try {
-      await firestore.collection('posts').add({
+      final postRef = await firestore.collection('posts').add({
         'tag': tag,
         'title': roominfo,
         'content': content,
-
         'review': 0,
         'userId': FirebaseAuth.instance.currentUser?.uid,
         'authorId': authorId, // authorId 추가
@@ -90,19 +94,25 @@ class PostService {
         'type': type, // 거래 유형 저장
         'roomType': roomType, // 타입 저장
         'location': location,
+        'floor': floor, // 층수
+        'maintenanceFee': maintenanceFee, // 관리비
+        'parkingAvailable': parkingAvailable, // 수정된 변수 이름
+        'moveInDate': moveInDate, // 입주 가능 여부
+        'options': optionsToSave,
         'createAt': Timestamp.now(), // createAt이 없으면 현재 시간으로 설정
       });
-
+      // postId 반환
       // 성공적으로 게시글 작성 후 UI 알림
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('게시글이 작성되었습니다.')),
       );
+      return postRef.id;
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('게시글 작성 중 오류 발생: $e')),
-      );
-      // 에러를 추가로 로그로 출력하여 문제를 더 잘 파악할 수 있도록 하기
-      print("Error creating post: $e");
+      // 예외가 발생하면 로그를 출력하거나 적절한 처리 후 기본 값을 반환
+      print("게시물 생성 중 오류 발생: $e");
+      throw Exception("게시물 생성 실패"); // 예외 처리 또는 사용자에게 알림
+      // 혹은, 예외 발생 시 null을 반환하거나, 빈 문자열을 반환할 수도 있음.
+      // return ''; // 예를 들어 빈 문자열 반환
     }
   }
 
@@ -129,21 +139,27 @@ class PostService {
       }
 
       final postData = postDoc.data() as Map<String, dynamic>;
-      final authorId = postData['authorId']; // authorId 포함
+      final authorId = postData['authorId'] ?? ''; // // authorId 포함
       final createAt = postData['createAt'] ??
           Timestamp.now(); // Firestore에서 createAt 값 가져오기, 없으면 현재 시간 사용
+
+      final options = postData['options'] ?? [];
 
       // 반환할 데이터에 authorId 포함
       return {
         'title': postData['title'],
         'content': postData['content'],
-
         'review': postData['review'] ?? 0, // 기본값 설정
-        'authorId': authorId, // authorId 추가
-        'image': postData['image'],
-        'type': postData['type'],
-        'roomType': postData['roomType'],
-        'location': postData['location'],
+        'authorId': authorId,
+        'image': postData['image'] ?? '',
+        'type': postData['type'] ?? '',
+        'roomType': postData['roomType'] ?? '',
+        'location': postData['location'] ?? '',
+        'floor': postData['floor'] ?? 'N/A', // 기본값 설정
+        'maintenanceFee': postData['maintenanceFee'] ?? '0', // 기본값 설정
+        'parkingAvailable': postData['parkingAvailable'] ?? false, // bool로 반환
+        'moveInDate': postData['moveInDate'] ?? false, // bool로 반환
+        'options': options,
         // ignore: equal_keys_in_map
         'createAt': createAt, // createAt 필드 추가
       };
@@ -162,11 +178,24 @@ class PostService {
         throw Exception('게시글 데이터를 불러오지 못했습니다.');
       }
 
+      // postDetails에서 options를 가져옵니다.
+      List<String> selectedOptions = List<String>.from(postDetails['options']
+          .map((option) => option['option'])); // 'name'을 옵션 이름으로 가정
+
+      final parkingAvailable = postDetails['parkingAvailable']; // 주차 가능 여부
+      final moveInDate = postDetails['moveInDate']; // 입주 가능 여부
+
       // 데이터를 가져온 후 RoomDetailsScreen으로 이동
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => RoomDetailsScreen(postId: postId),
+          builder: (context) => RoomDetailsScreen(
+            postId: postId,
+            selectedOptions: selectedOptions.toList(),
+            parkingAvailable: parkingAvailable, // 전달
+            moveInDate: moveInDate, // 전달
+            //optionIcons: optionIcons,
+          ),
         ),
       );
     } catch (e) {
@@ -178,16 +207,28 @@ class PostService {
   }
 
   // 게시글 수정 기능
-  Future<void> updatePost(String postId, String title, String content,
-      String? type, String? roomType, dynamic image, String? location) async {
+  Future<void> updatePost(
+    String postId,
+    String title,
+    String content,
+    String? type,
+    String? roomType,
+    dynamic image,
+    String? location, {
+    required String floor,
+    required String maintenanceFee,
+    required bool parkingAvailable,
+    required bool moveInDate,
+    required List<String> options,
+  }) async {
     try {
-      DocumentReference postRef = firestore.collection('posts').doc(postId);
+      final postRef = firestore.collection('posts').doc(postId);
 
-      // 해당 postId가 있는지 확인
-      DocumentSnapshot postSnapshot = await postRef.get();
+      final postSnapshot = await postRef.get();
       if (!postSnapshot.exists) {
         throw '게시글이 존재하지 않습니다.';
       }
+
       String? imageUrl;
       if (image != null) {
         final fileName = DateTime.now().millisecondsSinceEpoch.toString();
@@ -212,6 +253,11 @@ class PostService {
         'type': type,
         'roomType': roomType,
         'location': location,
+        'floor': floor, // 새 필드 추가
+        'maintenanceFee': maintenanceFee, // 새 필드 추가
+        'parkingAvailable': parkingAvailable, // 새 필드 추가
+        'moveInDate': moveInDate, // 새 필드 추가
+        'options': options, // 새 필드 추가
       };
       if (imageUrl != null) {
         updateData['image'] = imageUrl; // 새 이미지 URL 추가

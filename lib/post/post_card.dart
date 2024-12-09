@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'room_details_screen.dart';
+//import 'package:oneroom_finder/post/option_icons.dart';
 
 class PostCard extends StatefulWidget {
   final QueryDocumentSnapshot post;
@@ -59,11 +60,31 @@ class _PostCardState extends State<PostCard> {
       child: ListTile(
         contentPadding: const EdgeInsets.all(12.0),
         onTap: () async {
+          // selectedOptions 추출
+          final postData = widget.post.data() as Map<String, dynamic>;
+          final selectedOptions =
+              (postData['options'] as List<dynamic>?)?.map((option) {
+                    // option이 null일 수 있으므로, 안전하게 'name' 값을 처리
+                    if (option != null && option is Map<String, dynamic>) {
+                      return option['name'] as String? ??
+                          ''; // 'name'이 null이면 빈 문자열로 처리
+                    }
+                    return ''; // option이 잘못된 형식일 경우 빈 문자열 반환
+                  }).toList() ??
+                  [];
+
+          final parkingAvailable = postData['parkingAvailable'] ?? 'No';
+          final moveInDate = postData['moveInDate'] ?? 'No';
+
           final updatedData = await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => RoomDetailsScreen(
                 postId: widget.postId,
+                selectedOptions: selectedOptions.toList(),
+                parkingAvailable: parkingAvailable, // 주차 가능 여부 전달
+                moveInDate: moveInDate, // 입주 가능 여부 전달
+                //optionIcons: optionIcons,
               ),
             ),
           );

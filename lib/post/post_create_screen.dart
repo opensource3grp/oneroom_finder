@@ -2,9 +2,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart'; // 이미지 선택
 //import 'dart:io'; // 이미지 파일 관련
-import 'post_service.dart'; // PostService import
+import 'package:oneroom_finder/post/post_service.dart'; // PostService import
 import 'package:firebase_auth/firebase_auth.dart'; // FirebaseAuth import
 import 'package:cloud_firestore/cloud_firestore.dart'; // FirebaseFirestore import
+import 'package:oneroom_finder/post/room_details_screen.dart';
 
 class PostCreateScreen extends StatefulWidget {
   final PostService postService;
@@ -18,19 +19,35 @@ class PostCreateScreen extends StatefulWidget {
 class _PostCreateScreenState extends State<PostCreateScreen> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
+  final TextEditingController _floorController = TextEditingController(); // 층수
+  final TextEditingController _maintenanceFeeController =
+      TextEditingController(); // 관리비
   String selectedTag = '매매';
-  String? title; // 타입 선택을 위한 변수
-  String? type; // 거래 유형 선택을 위한 변수
+  String? title; // 타입 선택
+  String? type; // 거래 유형
   String? roomLocation;
+  bool parkingAvailable = false; // "주차 가능" -> true, "주차 불가능" -> false
+  bool moveInDate = false; // "즉시 입주 가능" -> true, "즉시 입주 불가능" -> false
   final List<String> tags = ['양도', '매매'];
-  File? selectedImage; // 선택된 이미지 파일
+  final Map<String, IconData> optionIcons = {
+    '냉장고': Icons.kitchen,
+    '에어컨': Icons.ac_unit,
+    '세탁기': Icons.local_laundry_service,
+    'Wi-Fi': Icons.wifi,
+    'TV': Icons.tv,
+    '책상': Icons.desk,
+    '가스레인지': Icons.fireplace,
+    '침대': Icons.bed,
+  }; //기본 옵션 정보
+  final Set<String> selectedOptions = {}; // 선택된 옵션들
+  File? selectedImage;
 
   final ImagePicker _picker = ImagePicker();
   String? nickname; // 로그인한 사용자의 닉네임
   String? job; // 로그인한 사용자의 직업
 
-  Color? buttonColor; // 직업에 따른 버튼 색상 변수
-  Color? backgroundColor; // 직업에 따른 배경색 변수
+  Color? buttonColor;
+  Color? backgroundColor;
 
   @override
   void initState() {
@@ -116,6 +133,15 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
               ),
               const SizedBox(height: 16),
 
+              TextField(
+                controller: _titleController,
+                decoration: const InputDecoration(
+                  labelText: '제목',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+
               // 타입 선택 (원룸, 투룸, 쓰리룸)
               DropdownButtonFormField<String>(
                 decoration: const InputDecoration(
@@ -160,7 +186,7 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
               // 위치 선택
               DropdownButtonFormField<String>(
                 decoration: const InputDecoration(
-                  labelText: '타입 선택',
+                  labelText: '위치 선택',
                   border: OutlineInputBorder(),
                 ),
                 value: roomLocation,
@@ -177,15 +203,41 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
                 },
               ),
               const SizedBox(height: 10),
+              // 주차 여부 (주차 가능 / 불가능)
+              _buildDropdown('주차 여부', parkingAvailable ? '주차 가능' : '주차 불가능',
+                  ['주차 가능', '주차 불가능'], (value) {
+                setState(() {
+                  parkingAvailable = value == '주차 가능'; // true/false 변환
+                });
+              }),
+              const SizedBox(height: 10),
 
-              TextField(
-                controller: _titleController,
-                decoration: const InputDecoration(
-                  labelText: '제목',
-                  border: OutlineInputBorder(),
-                ),
+              // 즉시 입주 가능 여부
+              _buildDropdown('즉시 입주', moveInDate ? '즉시 입주 가능' : '즉시 입주 불가능',
+                  ['즉시 입주 가능', '즉시 입주 불가능'], (value) {
+                setState(() {
+                  moveInDate = value == '즉시 입주 가능'; // true/false 변환
+                });
+              }),
+              const SizedBox(height: 10),
+              _buildTextField('층수', _floorController),
+              const SizedBox(height: 10),
+              _buildTextField('관리비', _maintenanceFeeController),
+              const SizedBox(height: 16),
+
+              // 기본 옵션 정보
+              const Text(
+                '기본 옵션 선택',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              Wrap(
+                spacing: 10,
+                children: optionIcons.entries.map((entry) {
+                  return _buildOptionChip(entry.key, entry.value);
+                }).toList(),
               ),
               const SizedBox(height: 16),
+
               TextField(
                 controller: _contentController,
                 decoration: const InputDecoration(
@@ -248,19 +300,50 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
               Center(
                 child: ElevatedButton(
                   onPressed: () async {
-                    await widget.postService.createPost(
-                      context,
-                      _titleController.text.trim(),
-                      _contentController.text.trim(),
-                      tag: selectedTag,
-                      image: selectedImage, // 이미지 전달
-                      type: type, // 거래 유형 전달
-                      roomType: title, // 타입 선택 전달
-                      location: roomLocation, //위치 전달
-                    );
+                    try {
+                      print("선택된 옵션들: $selectedOptions"); // 디버깅용 출력
 
-                    // ignore: use_build_context_synchronously
-                    Navigator.pop(context);
+                      // selectedOptions에서 선택된 옵션들을 Map<String, dynamic> 형태로 변환
+                      List<Map<String, dynamic>> optionsList =
+                          selectedOptions.map((option) {
+                        return {'option': option}; // Map 형태로 변환
+                      }).toList();
+
+                      // 게시물 생성
+                      final postId = await widget.postService.createPost(
+                        context,
+                        _titleController.text.trim(),
+                        _contentController.text.trim(),
+                        tag: selectedTag,
+                        image: selectedImage,
+                        type: type,
+                        roomType: title,
+                        location: roomLocation,
+                        parkingAvailable: parkingAvailable,
+                        moveInDate: moveInDate,
+                        floor: _floorController.text.trim(),
+                        maintenanceFee: _maintenanceFeeController.text.trim(),
+                        options: optionsList, // 변환된 optionsList 전달
+                      );
+
+                      // RoomDetailsScreen으로 이동
+                      if (!mounted) return; // BuildContext가 유효하지 않은 경우 종료
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => RoomDetailsScreen(
+                            postId: postId, // Firebase에서 postId를 가져왔다고 가정
+                            selectedOptions: selectedOptions.toList(),
+                            parkingAvailable: parkingAvailable,
+                            moveInDate: moveInDate,
+                          ),
+                        ),
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('게시물 생성 중 오류가 발생했습니다: $e')),
+                      );
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: buttonColor,
@@ -271,6 +354,34 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildDropdown(String label, String value, List<String> items,
+      void Function(String?) onChanged) {
+    return DropdownButtonFormField<String>(
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(),
+      ),
+      value: value,
+      items: items.map((item) {
+        return DropdownMenuItem(
+          value: item,
+          child: Text(item),
+        );
+      }).toList(),
+      onChanged: onChanged,
+    );
+  }
+
+  Widget _buildTextField(String label, TextEditingController controller) {
+    return TextField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(),
       ),
     );
   }
@@ -303,10 +414,31 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
     }
   }
 
+  // 옵션 필터칩 빌드
+  Widget _buildOptionChip(String option, IconData icon) {
+    return FilterChip(
+      avatar: Icon(icon), // 아이콘을 표시
+      label: Text(option), // 옵션 이름을 표시
+      selected: selectedOptions.contains(option), // 선택 여부
+      onSelected: (isSelected) {
+        setState(() {
+          if (isSelected) {
+            selectedOptions.add(option);
+          } else {
+            selectedOptions.remove(option);
+          }
+        });
+        print(selectedOptions);
+      },
+    );
+  }
+
   @override
   void dispose() {
     _titleController.dispose();
     _contentController.dispose();
+    _floorController.dispose();
+    _maintenanceFeeController.dispose();
     super.dispose();
   }
 }

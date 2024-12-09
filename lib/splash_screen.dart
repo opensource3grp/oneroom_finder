@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:oneroom_finder/home_screen.dart';
-import 'package:oneroom_finder/user_service/signup_screen.dart';
+import 'package:oneroom_finder/post/user_service/signup_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Firebase Auth 추가
 import 'dart:developer' as developer;

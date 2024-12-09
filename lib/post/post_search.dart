@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'room_details_screen.dart';
+import 'package:oneroom_finder/post/room_details_screen.dart';
+//import 'package:oneroom_finder/post/option_icons.dart';
 
 class PostSearchDelegate extends SearchDelegate<String> {
   PostSearchDelegate();
@@ -94,14 +95,42 @@ class PostSearchDelegate extends SearchDelegate<String> {
             final title = postData['title'] ?? '제목 없음';
             final postId = post.id; // 게시물 ID 가져오기
 
+            List<String> selectedOptions = [];
+            if (postData['options'] != null && postData['options'] is List) {
+              selectedOptions = (postData['options'] as List)
+                  .map((option) {
+                    if (option is Map<String, dynamic> &&
+                        option.containsKey('option')) {
+                      return option['option']
+                          as String; // Map에서 'option' 값을 가져옴
+                    }
+                    return ''; // 값이 없으면 빈 문자열 반환
+                  })
+                  .where((option) => option.isNotEmpty)
+                  .toList(); // 빈 문자열 제외
+            } else {
+              selectedOptions = []; // 데이터가 없으면 빈 리스트로 설정
+            }
+
+            final parkingAvailable =
+                postData['parkingAvailable'] ?? false; // 기본값 false
+            final moveInDate = postData['moveInDate'] ?? false; // 기본값 false
+
             return ListTile(
               title: Text(title),
               onTap: () {
+                // final parkingAvailable = postData['parkingAvailable'] ?? 'No';
+                // final moveInDate = postData['moveInDate'] ?? 'No';
                 // 클릭 시 상세 페이지로 이동
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => RoomDetailsScreen(postId: postId),
+                    builder: (context) => RoomDetailsScreen(
+                      postId: postId,
+                      selectedOptions: selectedOptions.toList(),
+                      parkingAvailable: parkingAvailable, // 주차 가능 여부 전달
+                      moveInDate: moveInDate,
+                    ),
                   ),
                 );
               },
