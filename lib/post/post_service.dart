@@ -1,87 +1,20 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'dart:developer' as developer;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:oneroom_finder/home_screen.dart';
+import 'package:flutter/material.dart';
 import 'package:oneroom_finder/post/room_details_screen.dart';
-import 'package:oneroom_finder/user_service/auth_service.dart';
+import 'package:oneroom_finder/post/user_service/auth_service.dart';
+
+//import 'package:oneroom_finder/post/option_icons.dart';
 
 class PostService {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final FirebaseStorage storage = FirebaseStorage.instance;
   final AuthService authService = AuthService(); // AuthService 인스턴스 생성
 
-  // Firestore에서 좋아요 추가
-  Future<int> likePost(
-      String postId, String userId, BuildContext context) async {
-    final postRef = firestore.collection('posts').doc(postId);
-
-    await firestore.runTransaction((transaction) async {
-      final snapshot = await transaction.get(postRef);
-      if (!snapshot.exists) {
-        throw Exception("게시물이 존재하지 않습니다.");
-      }
-
-      final data = snapshot.data()!;
-      final likes = data['likes'] ?? 0;
-      final likedUsers = List<String>.from(data['likedUsers'] ?? []);
-
-      if (!likedUsers.contains(userId)) {
-        likedUsers.add(userId);
-        transaction.update(postRef, {
-          'likes': likes + 1,
-          'likedUsers': likedUsers,
-        });
-      }
-    });
-
-    final updatedPost = await postRef.get();
-    return updatedPost.data()?['likes'] ?? 0;
-  }
-
-  // Firestore에서 좋아요 취소
-  Future<int> unlikePost(
-      String postId, String userId, BuildContext context) async {
-    final postRef = firestore.collection('posts').doc(postId);
-
-    await firestore.runTransaction((transaction) async {
-      final snapshot = await transaction.get(postRef);
-      if (!snapshot.exists) {
-        throw Exception("게시물이 존재하지 않습니다.");
-      }
-
-      final data = snapshot.data()!;
-      final likes = data['likes'] ?? 0;
-      final likedUsers = List<String>.from(data['likedUsers'] ?? []);
-
-      if (likedUsers.contains(userId)) {
-        likedUsers.remove(userId);
-        transaction.update(postRef, {
-          'likes': likes - 1,
-          'likedUsers': likedUsers,
-        });
-      }
-    });
-
-    final updatedPost = await postRef.get();
-    return updatedPost.data()?['likes'] ?? 0;
-  }
-
-  Future<void> updatePostLikes(String postId, int updatedLikes) async {
-    try {
-      final postRef = firestore.collection('posts').doc(postId);
-      await postRef.update({
-        'likes': updatedLikes,
-      });
-    } catch (e) {
-      throw Exception('게시글 좋아요 업데이트 중 오류 발생: $e');
-    }
-  }
-
-   Future<String> createPost(
+  Future<String> createPost(
     BuildContext context,
     String roominfo,
     String content, {
@@ -206,21 +139,27 @@ class PostService {
       }
 
       final postData = postDoc.data() as Map<String, dynamic>;
-      final authorId = postData['authorId']; // authorId 포함
+      final authorId = postData['authorId'] ?? ''; // // authorId 포함
       final createAt = postData['createAt'] ??
           Timestamp.now(); // Firestore에서 createAt 값 가져오기, 없으면 현재 시간 사용
+
+      final options = postData['options'] ?? [];
 
       // 반환할 데이터에 authorId 포함
       return {
         'title': postData['title'],
         'content': postData['content'],
-        'likes': postData['likes'] ?? 0, // 기본값 설정
         'review': postData['review'] ?? 0, // 기본값 설정
-        'authorId': authorId, // authorId 추가
-        'image': postData['image'],
-        'type': postData['type'],
-        'roomType': postData['roomType'],
-        'location': postData['location'],
+        'authorId': authorId,
+        'image': postData['image'] ?? '',
+        'type': postData['type'] ?? '',
+        'roomType': postData['roomType'] ?? '',
+        'location': postData['location'] ?? '',
+        'floor': postData['floor'] ?? 'N/A', // 기본값 설정
+        'maintenanceFee': postData['maintenanceFee'] ?? '0', // 기본값 설정
+        'parkingAvailable': postData['parkingAvailable'] ?? false, // bool로 반환
+        'moveInDate': postData['moveInDate'] ?? false, // bool로 반환
+        'options': options,
         // ignore: equal_keys_in_map
         'createAt': createAt, // createAt 필드 추가
       };
@@ -239,11 +178,24 @@ class PostService {
         throw Exception('게시글 데이터를 불러오지 못했습니다.');
       }
 
+      // postDetails에서 options를 가져옵니다.
+      List<String> selectedOptions = List<String>.from(postDetails['options']
+          .map((option) => option['option'])); // 'name'을 옵션 이름으로 가정
+
+      final parkingAvailable = postDetails['parkingAvailable']; // 주차 가능 여부
+      final moveInDate = postDetails['moveInDate']; // 입주 가능 여부
+
       // 데이터를 가져온 후 RoomDetailsScreen으로 이동
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => RoomDetailsScreen(postId: postId),
+          builder: (context) => RoomDetailsScreen(
+            postId: postId,
+            selectedOptions: selectedOptions.toList(),
+            parkingAvailable: parkingAvailable, // 전달
+            moveInDate: moveInDate, // 전달
+            //optionIcons: optionIcons,
+          ),
         ),
       );
     } catch (e) {
@@ -255,16 +207,28 @@ class PostService {
   }
 
   // 게시글 수정 기능
-  Future<void> updatePost(String postId, String title, String content,
-      String? type, String? roomType, dynamic image, String? location) async {
+  Future<void> updatePost(
+    String postId,
+    String title,
+    String content,
+    String? type,
+    String? roomType,
+    dynamic image,
+    String? location, {
+    required String floor,
+    required String maintenanceFee,
+    required bool parkingAvailable,
+    required bool moveInDate,
+    required List<String> options,
+  }) async {
     try {
-      DocumentReference postRef = firestore.collection('posts').doc(postId);
+      final postRef = firestore.collection('posts').doc(postId);
 
-      // 해당 postId가 있는지 확인
-      DocumentSnapshot postSnapshot = await postRef.get();
+      final postSnapshot = await postRef.get();
       if (!postSnapshot.exists) {
         throw '게시글이 존재하지 않습니다.';
       }
+
       String? imageUrl;
       if (image != null) {
         final fileName = DateTime.now().millisecondsSinceEpoch.toString();
@@ -289,6 +253,11 @@ class PostService {
         'type': type,
         'roomType': roomType,
         'location': location,
+        'floor': floor, // 새 필드 추가
+        'maintenanceFee': maintenanceFee, // 새 필드 추가
+        'parkingAvailable': parkingAvailable, // 새 필드 추가
+        'moveInDate': moveInDate, // 새 필드 추가
+        'options': options, // 새 필드 추가
       };
       if (imageUrl != null) {
         updateData['image'] = imageUrl; // 새 이미지 URL 추가
@@ -300,15 +269,14 @@ class PostService {
     }
   }
 
+  // 게시글 삭제 기능
   Future<void> deletePost(BuildContext context, String postId) async {
     try {
-      // 현재 로그인한 사용자 확인
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
         throw Exception('로그인 상태를 확인해주세요.');
       }
 
-      // 삭제할 게시글 가져오기
       final postDoc = await FirebaseFirestore.instance
           .collection('posts')
           .doc(postId)
@@ -318,49 +286,21 @@ class PostService {
         throw Exception('게시글이 존재하지 않습니다.');
       }
 
-      // 게시글 작성자 확인
       final postUserId = postDoc['userId'] as String? ?? '';
+
       if (currentUser.uid != postUserId) {
         throw Exception('삭제 권한이 없습니다.');
       }
 
-      // Firestore에서 게시글 삭제
       await FirebaseFirestore.instance.collection('posts').doc(postId).delete();
 
-      // 로그 및 사용자 피드백
-      developer.log('게시글 삭제 성공: $postId');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('게시글이 성공적으로 삭제되었습니다.')),
+        const SnackBar(content: Text('게시글이 삭제되었습니다.')),
       );
-
-      // 이전 화면으로 돌아가기
-      if (context.mounted) {
-        Navigator.pop(context); // 이전 화면으로 돌아감
-      }
     } catch (e) {
-      // 에러 로그 및 사용자 피드백
-      developer.log('게시글 삭제 실패: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('게시글 삭제 중 오류 발생: $e')),
       );
-    }
-  }
-
-  // 좋아요 기능
-  Future<void> incrementLikes(String postId) async {
-    try {
-      final postRef = firestore.collection('posts').doc(postId);
-
-      await firestore.runTransaction((transaction) async {
-        final snapshot = await transaction.get(postRef);
-
-        if (!snapshot.exists) return;
-
-        final currentLikes = snapshot.data()?['likes'] ?? 0;
-        transaction.update(postRef, {'likes': currentLikes + 1});
-      });
-    } catch (e) {
-      debugPrint('Error updating likes: $e');
     }
   }
 
@@ -379,51 +319,6 @@ class PostService {
       });
     } catch (e) {
       debugPrint('Error updating comments: $e');
-    }
-  }
-
-  // 좋아요 토글 (계정당 1번 제한)
-  Future<int> toggleLike(
-      String postId, String userId, BuildContext context) async {
-    try {
-      final postRef =
-          FirebaseFirestore.instance.collection('posts').doc(postId);
-
-      // Firestore 트랜잭션으로 좋아요 상태를 안전하게 변경
-      final newLikes =
-          await FirebaseFirestore.instance.runTransaction((transaction) async {
-        final postSnapshot = await transaction.get(postRef);
-
-        if (!postSnapshot.exists) {
-          throw Exception('게시물이 존재하지 않습니다.');
-        }
-
-        final postData = postSnapshot.data() as Map<String, dynamic>;
-        final likesCount = postData['likesCount'] ?? 0;
-        final likedBy = List<String>.from(postData['likedBy'] ?? []);
-
-        if (likedBy.contains(userId)) {
-          // 좋아요 취소
-          likedBy.remove(userId);
-          transaction.update(postRef, {
-            'likesCount': likesCount - 1,
-            'likedBy': likedBy,
-          });
-          return likesCount - 1;
-        } else {
-          // 좋아요 추가
-          likedBy.add(userId);
-          transaction.update(postRef, {
-            'likesCount': likesCount + 1,
-            'likedBy': likedBy,
-          });
-          return likesCount + 1;
-        }
-      });
-
-      return newLikes;
-    } catch (e) {
-      throw Exception('좋아요 처리 중 오류 발생: $e');
     }
   }
 
@@ -454,6 +349,26 @@ class PostService {
           .update({'status': newStatus});
     } catch (e) {
       throw Exception('게시글 상태 변경 중 오류 발생: $e');
+    }
+  }
+
+  Future<void> addLike(String userId, String postId) async {
+    await firestore
+        .collection('likes')
+        .add({'userId': userId, 'postId': postId});
+  }
+
+  // 좋아요 제거
+  Future<void> removeLike(String userId, String postId) async {
+    final likeDoc = await firestore
+        .collection('likes')
+        .where('userId', isEqualTo: userId)
+        .where('postId', isEqualTo: postId)
+        .limit(1)
+        .get();
+
+    if (likeDoc.docs.isNotEmpty) {
+      await likeDoc.docs.first.reference.delete();
     }
   }
 }

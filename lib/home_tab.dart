@@ -4,6 +4,7 @@ import 'package:oneroom_finder/post/post_card.dart';
 import 'package:oneroom_finder/post/post_list_screen.dart';
 import 'package:oneroom_finder/post/post_service.dart';
 import 'package:oneroom_finder/post/room_details_screen.dart';
+//import 'package:oneroom_finder/post/option_icons.dart';
 
 class HomeTab extends StatefulWidget {
   final String nickname;
@@ -24,6 +25,21 @@ class HomeTab extends StatefulWidget {
 class _HomeTabState extends State<HomeTab> {
   final PostService postService = PostService();
 
+  // 좋아요 상태를 Firestore에 업데이트하는 메서드
+  Future<void> toggleLike(String postId, bool newState) async {
+    final postRef = FirebaseFirestore.instance.collection('posts').doc(postId);
+
+    if (newState) {
+      await postRef.update({
+        'likes': FieldValue.arrayUnion([widget.uid]), // 현재 사용자 UID 추가
+      });
+    } else {
+      await postRef.update({
+        'likes': FieldValue.arrayRemove([widget.uid]), // UID 제거
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -36,7 +52,7 @@ class _HomeTabState extends State<HomeTab> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const PostListScreen(),
+                  builder: (context) => PostListScreen(uid: widget.uid),
                 ),
               );
             },
@@ -52,7 +68,7 @@ class _HomeTabState extends State<HomeTab> {
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return const Center(
               child: Text(
-                '게시글이 없습니다.',
+                '매물이 없습니다.',
                 style: TextStyle(fontSize: 16, color: Colors.black54),
               ),
             );
@@ -66,6 +82,9 @@ class _HomeTabState extends State<HomeTab> {
             itemBuilder: (context, index) {
               final post = posts[index];
               final postData = post.data() as Map<String, dynamic>;
+              final parkingAvailable =
+                  postData['parkingAvailable'] ?? 'No'; // 주차 가능 여부
+              final moveInDate = postData['moveInDate'] ?? 'No'; // 입주 가능 여부
 
               final postId = post.id;
               final title = postData['title'] ?? '제목 없음';
@@ -76,6 +95,18 @@ class _HomeTabState extends State<HomeTab> {
               final image = postData['image'] ?? '';
               final tag = postData['tag'] ?? '';
               final status = postData['status'] ?? '거래 가능';
+              final isLiked = (postData['likes'] ?? []).contains(widget.uid);
+
+// selectedOptions 추출
+              final List<String> selectedOptions =
+                  (postData['options'] as List<dynamic>?)?.map((option) {
+                        if (option != null && option is Map<String, dynamic>) {
+                          return option['option'] as String? ??
+                              ''; // Default to empty string if 'name' is null
+                        }
+                        return ''; // Return empty string for invalid or missing 'name'
+                      }).toList() ??
+                      [];
 
               return StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
@@ -96,6 +127,10 @@ class _HomeTabState extends State<HomeTab> {
                         MaterialPageRoute(
                           builder: (context) => RoomDetailsScreen(
                             postId: postId,
+                            selectedOptions: selectedOptions,
+                            parkingAvailable: parkingAvailable, // 주차 가능 여부 전달
+                            moveInDate: moveInDate, // 입주 가능 여부 전달
+                            //optionIcons: optionIcons,
                           ),
                         ),
                       );
@@ -112,6 +147,18 @@ class _HomeTabState extends State<HomeTab> {
                       review: review, // Firestore에서 commentsCount 가져오기
                       postId: postId,
                       status: status,
+                      isLiked: isLiked,
+                      onLikeToggle: () async {
+                        final newState = !isLiked;
+
+                        if (newState) {
+                          await postService.addLike(widget.uid, postId);
+                        } else {
+                          await postService.removeLike(widget.uid, postId);
+                        }
+                        await toggleLike(postId, newState);
+                        setState(() {});
+                      },
                     ),
                   );
                 },

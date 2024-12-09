@@ -3,7 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Firebase Auth 추가
 import 'package:cloud_firestore/cloud_firestore.dart'; // Firestore 추가
-import 'package:oneroom_finder/user_service/welcome_splash_screen.dart';
+import 'package:oneroom_finder/post/user_service/welcome_splash_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginSignupScreen extends StatefulWidget {
   const LoginSignupScreen({super.key});
@@ -35,25 +36,30 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
   }
 
   Future<void> _checkAutoLogin() async {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-      final nickname = userDoc.data()?['nickname'] ?? '알 수 없음';
-      final job = userDoc.data()?['job'] ?? '직업 없음';
+    final prefs = await SharedPreferences.getInstance();
+    isAutoLogin = prefs.getBool('isAutoLogin') ?? false;
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => WelcomeSplashScreen(
-            uid: user.uid,
-            nickname: nickname,
-            job: job,
+    if (isAutoLogin) {
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        final nickname = userDoc.data()?['nickname'] ?? '알 수 없음';
+        final job = userDoc.data()?['job'] ?? '직업 없음';
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => WelcomeSplashScreen(
+              uid: user.uid,
+              nickname: nickname,
+              job: job,
+            ),
           ),
-        ),
-      );
+        );
+      }
     }
   }
 
@@ -162,6 +168,10 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
         final nickname = userDoc.data()?['nickname'] ?? '알 수 없음';
         final job = userDoc.data()?['job'] ?? '직업 없음';
 
+        // 자동 로그인 상태 저장
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('isAutoLogin', isAutoLogin);
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -181,9 +191,6 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
             break;
           case 'wrong-password':
             _showErrorSnackBar('잘못된 비밀번호입니다.');
-            break;
-          case 'email-already-in-use':
-            _showErrorSnackBar('이미 가입된 이메일입니다.');
             break;
           default:
             _showErrorSnackBar('로그인 실패: ${e.message}');

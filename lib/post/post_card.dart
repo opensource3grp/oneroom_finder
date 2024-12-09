@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'room_details_screen.dart';
+//import 'package:oneroom_finder/post/option_icons.dart';
 
 class PostCard extends StatefulWidget {
   final QueryDocumentSnapshot post;
@@ -14,9 +15,11 @@ class PostCard extends StatefulWidget {
   final String postId;
   final String tag;
   final String status;
+  final bool isLiked;
+  final VoidCallback onLikeToggle;
 
   const PostCard({
-    super.key,
+    Key? key,
     required this.post,
     required this.title,
     required this.content,
@@ -28,7 +31,9 @@ class PostCard extends StatefulWidget {
     required this.postId,
     required this.tag,
     required this.status,
-  });
+    required this.isLiked,
+    required this.onLikeToggle,
+  }) : super(key: key);
 
   @override
   // ignore: library_private_types_in_public_api
@@ -36,6 +41,14 @@ class PostCard extends StatefulWidget {
 }
 
 class _PostCardState extends State<PostCard> {
+  bool isLiked = false; // 하트 상태를 나타내는 변수
+
+  @override
+  void initState() {
+    super.initState();
+    isLiked = widget.isLiked; // 부모에서 전달된 isLiked 값을 초기화
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -47,11 +60,31 @@ class _PostCardState extends State<PostCard> {
       child: ListTile(
         contentPadding: const EdgeInsets.all(12.0),
         onTap: () async {
+          // selectedOptions 추출
+          final postData = widget.post.data() as Map<String, dynamic>;
+          final selectedOptions =
+              (postData['options'] as List<dynamic>?)?.map((option) {
+                    // option이 null일 수 있으므로, 안전하게 'name' 값을 처리
+                    if (option != null && option is Map<String, dynamic>) {
+                      return option['name'] as String? ??
+                          ''; // 'name'이 null이면 빈 문자열로 처리
+                    }
+                    return ''; // option이 잘못된 형식일 경우 빈 문자열 반환
+                  }).toList() ??
+                  [];
+
+          final parkingAvailable = postData['parkingAvailable'] ?? 'No';
+          final moveInDate = postData['moveInDate'] ?? 'No';
+
           final updatedData = await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => RoomDetailsScreen(
                 postId: widget.postId,
+                selectedOptions: selectedOptions.toList(),
+                parkingAvailable: parkingAvailable, // 주차 가능 여부 전달
+                moveInDate: moveInDate, // 입주 가능 여부 전달
+                //optionIcons: optionIcons,
               ),
             ),
           );
@@ -136,6 +169,18 @@ class _PostCardState extends State<PostCard> {
                 Text(
                   '후기 ${widget.review}개',
                   style: const TextStyle(color: Colors.grey),
+                ),
+                IconButton(
+                  onPressed: () {
+                    widget.onLikeToggle(); // 부모에서 전달받은 콜백 사용
+                    setState(() {
+                      isLiked = !isLiked; // 하트 상태를 반영
+                    });
+                  },
+                  icon: Icon(
+                    isLiked ? Icons.favorite : Icons.favorite_border,
+                    color: isLiked ? Colors.red : Colors.grey,
+                  ), // 좋아요 상태 토글
                 ),
               ],
             ),
