@@ -4,13 +4,22 @@ import 'package:flutter/material.dart';
 import 'package:oneroom_finder/chat_room/chatroom_screen.dart';
 import 'package:oneroom_finder/post/editpost_dialog.dart';
 import 'comment.dart';
-import 'post_service.dart';
+import 'package:oneroom_finder/post/post_service.dart';
 
 class RoomDetailsScreen extends StatelessWidget {
   final String postId;
+  final List<String> selectedOptions;
+  final bool parkingAvailable; // 주차 가능 여부
+  final bool moveInDate; // 입주 가능 여부
   final PostService postService = PostService();
 
-  RoomDetailsScreen({super.key, required this.postId});
+  RoomDetailsScreen({
+    super.key,
+    required this.postId,
+    required this.selectedOptions,
+    required this.parkingAvailable,
+    required this.moveInDate,
+  });
 
   Stream<DocumentSnapshot> fetchPostDetails() {
     return FirebaseFirestore.instance
@@ -85,6 +94,16 @@ class RoomDetailsScreen extends StatelessWidget {
     }
   }
 
+  Widget _iconWithText(IconData icon, String text) {
+    return Column(
+      children: [
+        Icon(icon, size: 30),
+        const SizedBox(height: 5),
+        Text(text),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final userId = FirebaseAuth.instance.currentUser?.uid; // 사용자 uid 생성
@@ -117,6 +136,38 @@ class RoomDetailsScreen extends StatelessWidget {
         final int comment = post['review'] ?? 0;
         final String? imageUrl = post['image'];
         final String location = post['location'] ?? '위치 정보 없음'; // 위치 정보 기본값
+        final String floor = post['floor'] ?? '층수 정보 없음';
+        final String maintenanceFee = post['maintenanceFee'] ?? '관리비 정보 없음';
+        final bool parkingAvailable = post['parkingAvailable'] ?? false;
+        final bool moveInDate = post['moveInDate'] ?? false;
+
+        // 선택된 옵션 리스트를 가져오기
+        List<String> selectedOptions = [];
+        if (post['options'] != null && post['options'] is List) {
+          selectedOptions = (post['options'] as List)
+              .map((option) {
+                if (option is Map<String, dynamic> &&
+                    option.containsKey('option')) {
+                  return option['option'] as String; // Map에서 'option' 값을 가져옴
+                }
+                return ''; // 값이 없으면 빈 문자열 반환
+              })
+              .where((option) => option.isNotEmpty)
+              .toList(); // 빈 문자열 제외
+        } else {
+          selectedOptions = []; // 데이터가 없으면 빈 리스트로 설정
+        }
+
+        final Map<String, IconData> optionIcons = {
+          '냉장고': Icons.kitchen,
+          '에어컨': Icons.ac_unit,
+          '세탁기': Icons.local_laundry_service,
+          'Wi-Fi': Icons.wifi,
+          'TV': Icons.tv,
+          '책상': Icons.desk,
+          '가스레인지': Icons.fireplace,
+          '침대': Icons.bed,
+        };
 
         // 작성자 정보 가져오기
         return FutureBuilder<Map<String, dynamic>?>(
@@ -296,9 +347,53 @@ class RoomDetailsScreen extends StatelessWidget {
                             fallbackHeight: 200,
                             fallbackWidth: double.infinity),
                       const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _iconWithText(Icons.local_parking,
+                              "주차: ${parkingAvailable ? '주차 가능' : '주차 불가능'}"),
+                          _iconWithText(Icons.apartment, "층수: $floor"),
+                          _iconWithText(Icons.calendar_today,
+                              "즉시 입주: ${moveInDate ? '즉시 입주 가능' : '즉시 입주 불가능'}"),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      //관리비정보
+                      Text(
+                        '관리비 : $maintenanceFee',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+
+                      //옵션정보
+                      const Text(
+                        '옵션 정보',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      // 선택된 옵션의 아이콘 표시
+                      if (selectedOptions.isNotEmpty)
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: selectedOptions.map((option) {
+                            final icon = optionIcons[option] ??
+                                Icons.help; // 아이콘이 없으면 기본 아이콘 사용
+                            return _iconWithText(icon, option); // 아이콘과 텍스트 표시
+                          }).toList(),
+                        )
+                      else
+                        const Text(
+                          '선택된 옵션이 없습니다.',
+                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                        ),
+                      const SizedBox(height: 20),
                       // 내용
                       Text(
-                        content,
+                        '상세설명: $content',
                         style: const TextStyle(fontSize: 18),
                       ),
                       const SizedBox(height: 24),
@@ -363,6 +458,12 @@ class RoomDetailsScreen extends StatelessWidget {
                       CommentInputField(
                         postId: postId,
                         isCommentAllowed: status == '거래 완료',
+                      ),
+                      // 찜하기 버튼
+                      const SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: () {},
+                        child: Text('이 집이 마음에 드시나요?'),
                       ),
                     ],
                   ),
