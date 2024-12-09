@@ -19,7 +19,7 @@ class PostCard extends StatefulWidget {
   final VoidCallback onLikeToggle;
 
   const PostCard({
-    super.key,
+    Key? key,
     required this.post,
     required this.title,
     required this.content,
@@ -33,7 +33,7 @@ class PostCard extends StatefulWidget {
     required this.status,
     required this.isLiked,
     required this.onLikeToggle,
-  });
+  }) : super(key: key);
 
   @override
   // ignore: library_private_types_in_public_api

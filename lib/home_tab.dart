@@ -26,7 +26,7 @@ class _HomeTabState extends State<HomeTab> {
   final PostService postService = PostService();
 
   // 좋아요 상태를 Firestore에 업데이트하는 메서드
-  Future<void> _toggleLike(String postId, bool newState) async {
+  Future<void> toggleLike(String postId, bool newState) async {
     final postRef = FirebaseFirestore.instance.collection('posts').doc(postId);
 
     if (newState) {
@@ -68,7 +68,7 @@ class _HomeTabState extends State<HomeTab> {
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return const Center(
               child: Text(
-                '게시글이 없습니다.',
+                '매물이 없습니다.',
                 style: TextStyle(fontSize: 16, color: Colors.black54),
               ),
             );
@@ -148,8 +148,17 @@ class _HomeTabState extends State<HomeTab> {
                       postId: postId,
                       status: status,
                       isLiked: isLiked,
-                      onLikeToggle: () =>
-                          _toggleLike(postId, !isLiked), // 하트 상태 토글
+                      onLikeToggle: () async {
+                        final newState = !isLiked;
+
+                        if (newState) {
+                          await postService.addLike(widget.uid, postId);
+                        } else {
+                          await postService.removeLike(widget.uid, postId);
+                        }
+                        await toggleLike(postId, newState);
+                        setState(() {});
+                      },
                     ),
                   );
                 },

@@ -31,4 +31,4 @@ flutter:
   uses-material-design: true  # Material Design 아이콘 사용 설정
   assets:
     - assets/logo.png
-    - assets/naver_map.html
+    - assets/map.png

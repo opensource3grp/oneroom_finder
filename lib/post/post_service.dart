@@ -351,4 +351,24 @@ class PostService {
       throw Exception('게시글 상태 변경 중 오류 발생: $e');
     }
   }
+
+  Future<void> addLike(String userId, String postId) async {
+    await firestore
+        .collection('likes')
+        .add({'userId': userId, 'postId': postId});
+  }
+
+  // 좋아요 제거
+  Future<void> removeLike(String userId, String postId) async {
+    final likeDoc = await firestore
+        .collection('likes')
+        .where('userId', isEqualTo: userId)
+        .where('postId', isEqualTo: postId)
+        .limit(1)
+        .get();
+
+    if (likeDoc.docs.isNotEmpty) {
+      await likeDoc.docs.first.reference.delete();
+    }
+  }
 }
