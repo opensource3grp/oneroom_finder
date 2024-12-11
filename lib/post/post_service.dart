@@ -54,6 +54,8 @@ class PostService {
       return '';
     }
 
+    
+
     final optionsToSave = options ?? [];
 
     // 이미지가 선택되었으면 Firebase Storage에 업로드
@@ -126,6 +128,139 @@ class PostService {
     } catch (e) {
       print('Firestore 데이터 스트림 오류: $e');
       return const Stream.empty(); // 오류 발생 시 빈 스트림 반환
+    }
+  }
+
+  // 거래 상태 변경 메서드
+  
+  Future<void> changePostStatus(
+      BuildContext context, String postId, String newStatus) async {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        throw Exception('로그인 상태를 확인해주세요.');
+      }
+
+      // 게시글 확인
+      final postDoc = await firestore.collection('posts').doc(postId).get();
+      if (!postDoc.exists) {
+        throw Exception('게시글이 존재하지 않습니다.');
+      }
+
+      final postUserId = postDoc['userId'] as String? ?? '';
+      if (currentUser.uid != postUserId) {
+        throw Exception('상태를 변경할 권한이 없습니다.');
+      }
+
+      // 1:1 채팅 기록 확인
+      final hasChats = await hasChatRecords(postId);
+      if (!hasChats && newStatus != '게시 중') {
+        throw Exception('거래 상태를 변경하려면 1:1 채팅 기록이 필요합니다.');
+      }
+
+      // 거래 상태 변경
+      await firestore.collection('posts').doc(postId).update({'status': newStatus});
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('거래 상태가 "$newStatus"로 변경되었습니다.')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('거래 상태 변경 중 오류 발생: $e')),
+      );
+    }
+  }
+  
+
+  // Checks if there are any chat records for a given post
+  Future<bool> hasChatRecords(String postId) async {
+    try {
+      final chatQuery = await firestore
+        .collection('chats')
+        .where('postId', isEqualTo: postId)
+        .get();
+      return chatQuery.docs.isNotEmpty;
+    } catch (e) {
+    print('Error checking chat records: $e');
+    return false;
+  }
+}
+
+  // 1:1 채팅 생성 제한
+  Future<void> createChat(String postId, String recipientId, BuildContext context) async {
+    try {
+      // 게시글 상태 확인
+      final postDoc = await firestore.collection('posts').doc(postId).get();
+      if (!postDoc.exists) {
+        throw Exception('게시글이 존재하지 않습니다.');
+      }
+
+      final postStatus = postDoc['status'] as String? ?? '게시 중';
+      if (postStatus != '게시 중') {
+        throw Exception('이 게시글은 현재 "$postStatus" 상태입니다. 1:1 채팅이 불가능합니다.');
+      }
+
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        throw Exception('로그인이 필요합니다.');
+      }
+
+      // 1:1 채팅 생성
+      await firestore.collection('chats').add({
+        'postId': postId,
+        'senderId': currentUser.uid,
+        'recipientId': recipientId,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('1:1 채팅이 생성되었습니다.')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('1:1 채팅 생성 중 오류 발생: $e')),
+      );
+    }
+  }
+
+  // 게시글 삭제 시 관련된 채팅 삭제
+  Future<void> deletePostAndChats(BuildContext context, String postId) async {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        throw Exception('로그인 상태를 확인해주세요.');
+      }
+
+      final postDoc = await firestore.collection('posts').doc(postId).get();
+      if (!postDoc.exists) {
+        throw Exception('게시글이 존재하지 않습니다.');
+      }
+
+      final postUserId = postDoc['userId'] as String? ?? '';
+      if (currentUser.uid != postUserId) {
+        throw Exception('삭제 권한이 없습니다.');
+      }
+
+      // 게시글 삭제
+      await firestore.collection('posts').doc(postId).delete();
+
+      // 관련 채팅 삭제
+      final chatQuery = await firestore
+          .collection('chats')
+          .where('postId', isEqualTo: postId)
+          .get();
+
+      for (final chatDoc in chatQuery.docs) {
+        await chatDoc.reference.delete();
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('게시글과 관련 채팅이 삭제되었습니다.')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('게시글 삭제 중 오류 발생: $e')),
+      );
     }
   }
 

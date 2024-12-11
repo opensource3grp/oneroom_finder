@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:oneroom_finder/chat_room/chat_screen.dart';
 import 'package:oneroom_finder/post/room_details_screen.dart';
-//import 'package:oneroom_finder/post/option_icons.dart';
 
 class UserPostsDialog extends StatelessWidget {
   final String userId;
@@ -151,6 +151,24 @@ class UserPostsDialog extends StatelessWidget {
                             Text(
                               '후기 ${postData['review'] ?? 0}개',
                               style: const TextStyle(color: Colors.grey),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.chat),
+                              onPressed: () {
+                                // 고유한 채팅방 ID를 생성 (userId와 postId를 기반으로)
+                                final chatRoomId = '${userId}_${postId}_${DateTime.now().millisecondsSinceEpoch}';
+                                final recipientName = postData['authorName'] ?? 'Unknown User'; // 작성자 이름
+
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ChatScreen(
+                                      chatRoomId: chatRoomId,
+                                      recipientName: recipientName,
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
                           ],
                         ),
